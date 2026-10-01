@@ -1,1 +1,16 @@
+# File d'ambiente e segreti
 .env
+.env.*
+!.env.example
+
+# File di sistema macOS
+.DS_Store
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Cartelle temporanee e di test
+.playwright-cli/
+output/
+.kilo/
