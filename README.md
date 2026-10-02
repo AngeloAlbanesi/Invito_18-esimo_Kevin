@@ -62,6 +62,12 @@ sfondo non si carica, resta un gradiente mare/cielo e l’invito è utilizzabile
 restano visibili i dettagli e la location, con un avviso per il form.
 Il dialog gestisce tastiera, focus, Escape e ritorno al pulsante di conferma.
 
+La musica parte al tocco sulla busta: prima `We Did It! Party`, poi
+`To the Grand Line`, dai due MP3 in `assets/sound/`. La sequenza si ripete
+senza fine. Il pulsante “Pausa musica” / “Attiva musica” sospende e riprende
+il brano; permette anche l’avvio se il browser blocca il primo tentativo.
+Il volume iniziale è al 30%, dove il browser consente di regolarlo.
+
 Le illustrazioni sono SVG originali creati nel progetto, senza acquisti né
 hotlink. Immagini, CSS e font sono locali, circa 320 kB complessivi.
 Provenienza, utilizzo e licenza del font conservato sono in
@@ -192,6 +198,7 @@ mkdir -p output/playwright
 npx --yes --package @playwright/cli playwright-cli -s=kevin open http://127.0.0.1:8000 --browser chrome
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/invitation.browser.js
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/rsvp-deadline.browser.js
+npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/music.browser.js
 ```
 
 Il controllo della scadenza simula l’ultimo millisecondo del 15 novembre e la

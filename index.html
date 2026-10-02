@@ -116,6 +116,9 @@
         <div class="paper-fragments" id="paper-fragments" aria-hidden="true"></div>
     </main>
 
+    <audio id="background-music" preload="none" src="./assets/sound/we-did-it-party-one-piece-ost-320k_FSQmelMw.mp3"></audio>
+    <button class="music-toggle" id="music-toggle" type="button" aria-label="Musica di sottofondo" aria-pressed="false" hidden>Attiva musica</button>
+
     <dialog id="rsvp-dialog" aria-labelledby="rsvp-title" aria-describedby="rsvp-description">
         <button class="dialog-close" id="rsvp-close" type="button" aria-label="Chiudi conferma presenza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
         <p class="eyebrow">Registro di bordo · RSVP</p>
@@ -242,6 +245,39 @@
             new Promise((resolve) => setTimeout(resolve, 1500)),
         ]).then(() => { document.body.classList.add('ready'); });
 
+        const backgroundMusic = document.getElementById('background-music');
+        const musicButton = document.getElementById('music-toggle');
+        const musicTracks = [
+            './assets/sound/we-did-it-party-one-piece-ost-320k_FSQmelMw.mp3',
+            './assets/sound/to-the-grand-line-one-piece-ost-320k_9UMmntTG.mp3',
+        ];
+        let musicTrackIndex = 0;
+        backgroundMusic.volume = .3;
+        musicButton.hidden = false;
+
+        function updateMusicButton() {
+            const playing = !backgroundMusic.paused && !backgroundMusic.error;
+            musicButton.setAttribute('aria-pressed', String(playing));
+            musicButton.textContent = playing ? 'Pausa musica' : 'Attiva musica';
+        }
+
+        function playBackgroundMusic() {
+            backgroundMusic.play().catch(updateMusicButton);
+        }
+
+        backgroundMusic.addEventListener('play', updateMusicButton);
+        backgroundMusic.addEventListener('pause', updateMusicButton);
+        backgroundMusic.addEventListener('error', updateMusicButton);
+        backgroundMusic.addEventListener('ended', () => {
+            musicTrackIndex = (musicTrackIndex + 1) % musicTracks.length;
+            backgroundMusic.src = musicTracks[musicTrackIndex];
+            playBackgroundMusic();
+        });
+        musicButton.addEventListener('click', () => {
+            if (backgroundMusic.paused || backgroundMusic.error) playBackgroundMusic();
+            else backgroundMusic.pause();
+        });
+
         function releasePaperFragments() {
             if (reducedMotion.matches || document.hidden) return;
             const container = document.getElementById('paper-fragments');
@@ -265,6 +301,7 @@
         openButton.addEventListener('click', async () => {
             if (openingState !== 'closed') return;
             openingState = 'opening';
+            playBackgroundMusic();
             openButton.disabled = true;
             document.body.dataset.state = 'opening';
             releasePaperFragments();
