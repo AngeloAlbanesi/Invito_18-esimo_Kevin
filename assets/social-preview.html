@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=1200">
+    <title>Card di condivisione · Kevin Tobia</title>
+    <link rel="icon" href="./images/favicon.svg" type="image/svg+xml">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #243c3d; background: #f8edcf; font-family: Georgia, serif; }
+        .card { position: relative; width: 1200px; height: 630px; overflow: hidden; }
+        .crew { position: absolute; right: 0; width: 590px; height: 630px; object-fit: cover; object-position: 50% 50%; }
+        .card::after { content: ''; position: absolute; inset: 0; border: 16px solid #f8edcf; pointer-events: none; }
+        .paper {
+            position: relative;
+            width: 650px;
+            height: 100%;
+            padding: 48px 0 42px 58px;
+            background: linear-gradient(90deg, #f8edcf 91%, #f8edcf00);
+        }
+        .eyebrow, .unit, .details, .footer { font-family: Arial, sans-serif; }
+        .eyebrow { margin: 0 0 13px; color: #aa3328; font-size: 18px; font-weight: 700; letter-spacing: 4px; }
+        .age-row { display: flex; align-items: baseline; gap: 16px; height: 174px; }
+        .age { color: #aa3328; font-size: 174px; line-height: 1; letter-spacing: -9px; }
+        .unit { font-size: 29px; letter-spacing: 5px; }
+        h1 { margin: 0 0 12px; font-size: 68px; font-weight: 400; letter-spacing: -2px; }
+        .invitation { margin: 0; font-size: 27px; line-height: 1.25; font-style: italic; }
+        .rule { width: 480px; height: 1px; margin: 25px 0 20px; background: #b5a47e; }
+        .details { margin: 0; font-size: 24px; line-height: 1.55; font-weight: 700; }
+        .venue { font-weight: 400; font-size: 22px; }
+        .footer { margin: 23px 0 0; color: #aa3328; font-size: 16px; font-weight: 700; letter-spacing: 3px; }
+    </style>
+</head>
+<body>
+    <main class="card" aria-label="Anteprima dell’invito">
+        <img class="crew" src="./images/crew-party.jpg" alt="La ciurma di Cappello di Paglia in festa" width="900" height="600">
+        <div class="paper">
+            <p class="eyebrow">SI SALPA PER I MIEI</p>
+            <div class="age-row"><span class="age">18</span><span class="unit">ANNI</span></div>
+            <h1>Kevin Tobia</h1>
+            <p class="invitation">Sei invitato al mio<br>diciottesimo compleanno</p>
+            <div class="rule" aria-hidden="true"></div>
+            <p class="details">28 novembre 2026 · ore 20:00<br><span class="venue">La Fornace · Colledara</span></p>
+            <p class="footer">UNA FESTA. UNA CIURMA.</p>
+        </div>
+    </main>
+</body>
+</html>

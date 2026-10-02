@@ -226,6 +226,45 @@ Non generare traffico artificiale per evitarne la sospensione.
 
 ## Pubblicazione futura su GitHub Pages
 
+### Anteprima dei link su WhatsApp
+
+`index.html` contiene i metadati [Open Graph](https://ogp.me/) direttamente
+nel `<head>`, disponibili anche senza JavaScript: titolo, descrizione in italiano,
+URL della pagina e immagine JPEG da 1200 × 630 px. Sono presenti anche i metadati
+Twitter Card. La card riprende pergamena, rosso e ciurma dell’invito e include
+nome, età, data, ora e location.
+
+Gli URL assoluti sono predisposti per
+[l’indirizzo Pages previsto](https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/),
+ricavato dal repository `AngeloAlbanesi/Invito_18-esimo_Kevin`.
+Se alla pubblicazione viene scelto un dominio o percorso diverso, aggiornare
+`canonical`, `og:url`, `og:image` e `twitter:image` in `index.html`.
+Questa modifica prepara l’anteprima; non pubblica il sito.
+
+L’immagine è `assets/images/og-invito-v1.jpg`; il sorgente modificabile è
+`assets/social-preview.html`. Quando cambiano i dati dell’evento, aggiornare
+anche card e metadati, oltre a `EVENT_CONFIG`. Per rigenerare il JPEG,
+con il server locale avviato e Chrome disponibile, dalla radice del progetto:
+
+```sh
+npx --yes --package @playwright/cli playwright-cli -s=kevin-og open http://127.0.0.1:8000/assets/social-preview.html --browser chrome
+npx --yes --package @playwright/cli playwright-cli -s=kevin-og run-code 'async page => {
+    await page.setViewportSize({ width: 1200, height: 630 });
+    await page.evaluate(async () => {
+        await document.fonts.ready;
+        await Promise.all(Array.from(document.images, image => image.decode()));
+    });
+    await page.screenshot({ path: "assets/images/og-invito-v1.jpg", type: "jpeg", quality: 85 });
+}'
+```
+
+Dopo la pubblicazione, verificare che pagina e JPEG siano pubblicamente
+accessibili via HTTPS, quindi incollare il link del sito in WhatsApp e controllare
+l’anteprima prima dell’invio. Il rendering effettivo dipende dall’app e dalle
+impostazioni del dispositivo e non è stato verificato dalla sola anteprima locale.
+
+### Attivazione di Pages
+
 La pubblicazione richiede un incarico successivo. Il frontend è statico e usa
 percorsi relativi, compatibili con l’indirizzo di progetto
 `https://<utente>.github.io/<repository>/`. `serve.py` serve soltanto per

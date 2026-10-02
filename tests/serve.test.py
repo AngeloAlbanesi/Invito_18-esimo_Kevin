@@ -17,6 +17,7 @@ try:
         ('/', 200),
         ('/index.html', 200),
         ('/assets/images/favicon.svg', 200),
+        ('/assets/images/og-invito-v1.jpg', 200),
         ('/.env', 403),
         ('/README.md', 403),
         ('/supabase/functions/rsvp/index.js', 403),

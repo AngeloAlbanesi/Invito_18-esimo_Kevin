@@ -1,19 +1,40 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" prefix="og: https://ogp.me/ns#">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#bce1dd">
     <meta name="description" content="Un invito speciale per i 18 anni di Kevin Tobia. 28 novembre 2026, La Fornace, Colledara.">
     <title>Kevin Tobia · 18 anni · One Piece</title>
+    <link rel="canonical" href="https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="it_IT">
+    <meta property="og:site_name" content="Il diciottesimo di Kevin">
+    <meta property="og:title" content="Kevin Tobia · 18 anni 🏴‍☠️">
+    <meta property="og:description" content="Sei invitato al mio diciottesimo compleanno. La ciurma ti aspetta il 28 novembre 2026 alle 20:00, a La Fornace, Colledara. Sali a bordo e conferma la tua presenza!">
+    <meta property="og:url" content="https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/">
+    <meta property="og:image" content="https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/assets/images/og-invito-v1.jpg">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Invito a tema One Piece: Kevin Tobia, 18 anni, 28 novembre 2026 alle 20:00, La Fornace, Colledara, con la ciurma in festa.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Kevin Tobia · 18 anni 🏴‍☠️">
+    <meta name="twitter:description" content="Sei invitato al mio diciottesimo compleanno. 28 novembre 2026 alle 20:00 · La Fornace, Colledara. Sali a bordo!">
+    <meta name="twitter:image" content="https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/assets/images/og-invito-v1.jpg">
+    <meta name="twitter:image:alt" content="Invito a tema One Piece per i 18 anni di Kevin Tobia, con la ciurma in festa.">
     <link rel="icon" href="./assets/images/favicon.svg" type="image/svg+xml">
-    <link rel="preload" href="./assets/images/ocean-scene.svg" as="image">
+    <link rel="preload" href="./assets/images/crew-party-mobile.jpg" as="image" media="(max-width: 600px)">
+    <link rel="preload" href="./assets/images/Crew_upscale.jpeg" as="image" media="(min-width: 601px)">
     <link rel="preload" href="./assets/fonts/cormorant-garamond.ttf" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" href="./assets/invitation.css">
 </head>
 <body data-state="opened">
     <main class="stage">
-        <img class="scenery" id="scenery" src="./assets/images/ocean-scene.svg" alt="" width="1440" height="1100" fetchpriority="high">
+        <picture>
+            <source media="(max-width: 600px)" srcset="./assets/images/crew-party-mobile.jpg" width="736" height="1597">
+            <img class="scenery" id="scenery" src="./assets/images/Crew_upscale.jpeg" alt="" width="2732" height="1536" fetchpriority="high">
+        </picture>
         <div class="ambient" aria-hidden="true"></div>
         <header class="masthead">
             <div class="brand">
@@ -26,7 +47,7 @@
             <div class="intro-content">
                 <p class="eyebrow">Un messaggio dalla ciurma di Cappello di Paglia</p>
                 <p class="intro-heading">La prossima avventura<br><em>comincia con te.</em></p>
-                <button class="envelope" id="open-invitation" type="button" aria-label="Apri l’invito" aria-describedby="open-hint">
+                <button class="envelope" id="open-invitation" type="button" aria-label="Apri l’invito">
                     <span class="envelope-back" aria-hidden="true"></span>
                     <span class="envelope-letter" aria-hidden="true">18</span>
                     <svg class="envelope-front" viewBox="0 0 380 253" aria-hidden="true">
@@ -40,10 +61,8 @@
                         <path d="M1 252L190 104L379 252Z" fill="url(#bottom-fold)" stroke="#a38b61" stroke-width=".8"/>
                     </svg>
                     <span class="envelope-flap" aria-hidden="true"></span>
-                    <span class="envelope-stamp" aria-hidden="true">POSTA DELLA CIURMA</span>
                     <span class="seal" aria-hidden="true"><img src="./assets/images/crew-mark.svg" alt="" width="47" height="47"></span>
                 </button>
-                <p class="open-hint" id="open-hint">Tocca il sigillo per aprire</p>
             </div>
             <p class="intro-date"><span data-event-name>Kevin Tobia</span> · <span data-event-date>28 novembre 2026</span></p>
         </section>
@@ -52,10 +71,17 @@
             <img class="crew-emblem" src="./assets/images/crew-mark.svg" alt="" width="65" height="61">
             <p class="eyebrow">La ciurma di Cappello di Paglia ti aspetta</p>
             <p class="invitation-kicker">Si salpa per i miei</p>
-            <div class="age" data-event-age aria-hidden="true">18</div>
-            <p class="age-caption">ANNI · UN NUOVO CAPITOLO</p>
+            <div class="age-row">
+                <span class="age" data-event-age aria-hidden="true">18</span>
+                <span class="age-unit">ANNI</span>
+            </div>
+            <p class="age-caption">UN NUOVO CAPITOLO</p>
             <h1 class="name" id="event-name" data-event-name tabindex="-1">Kevin Tobia</h1>
-            <p class="invitation-copy">Ogni grande avventura ha bisogno della sua ciurma.<br>Vieni a festeggiare il mio diciottesimo!</p>
+            <p class="invitation-copy">Ufficialmente maggiorenne e legalmente responsabile (o quasi!). Per celebrare la fine della scusa del 'Sono minorenne', ti aspetto alla mia festa dei 18 anni. Non puoi mancare!</p>
+            <picture>
+                <source media="(max-width: 600px)" srcset="./assets/images/Crew_upscale.jpeg" width="2732" height="1536">
+                <img class="crew-party" src="./assets/images/crew-party.jpg" alt="" width="900" height="600" decoding="async">
+            </picture>
             <svg class="ornament" viewBox="0 0 190 12" fill="none" aria-hidden="true"><path d="M1 4q5-6 10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0M1 8q5-6 10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" stroke="currentColor" stroke-width="1.3"/></svg>
             <p class="event-date"><time data-event-date datetime="2026-11-28">28 novembre 2026</time></p>
             <p class="event-time" id="event-time">Ore 20:00</p>
