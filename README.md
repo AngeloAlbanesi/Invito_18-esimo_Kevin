@@ -2,8 +2,9 @@
 
 ## Stato del progetto
 
-Invito completo con busta animata, sigillo, petali blu, sfondo originale con
-rose e cristalli, location, countdown e form RSVP collegato a Supabase.
+Invito One Piece con busta di pergamena animata, sigillo della ciurma di
+Cappello di Paglia, mare e nave illustrati, location, countdown e registro RSVP
+collegato a Supabase. Palette carta, rosso e mare, con grafica SVG locale.
 La festa è il **28 novembre 2026 alle 20:00**, presso La Fornace, SP40,
 64042 Colledara TE. Nessun sito pubblicato.
 
@@ -23,8 +24,9 @@ Aprire direttamente il file con `file://` non è il flusso di anteprima verifica
 
 ## File e personalizzazione
 
-- `index.html`: struttura, stile, animazioni e JavaScript del sito.
-- `assets/`: sfondo, favicon, font locali e relative licenze.
+- `index.html`: struttura, dati dell’evento e JavaScript del sito.
+- `assets/invitation.css`: stile, responsive e animazioni del redesign.
+- `assets/`: illustrazioni SVG, favicon, font locale e relativa licenza.
 - `serve.py`: anteprima locale protetta.
 - `supabase/`: funzione RSVP e schema del database.
 - `tests/`: verifiche del sito, del server e del backend.
@@ -41,14 +43,15 @@ location; non è stato confermato un identificativo specifico della struttura.
 Prima di condividere l’invito, controllare che il risultato sia quello desiderato.
 
 L’apertura usa CSS e le API native del browser, senza GSAP o librerie esterne.
-Una sola apertura genera al massimo 16 petali, che vengono rimossi al termine;
-la preferenza “riduci movimento” evita il movimento e i petali. Se lo sfondo
-non si carica, resta un fondo blu e l’invito è utilizzabile. Senza JavaScript,
+Una sola apertura genera al massimo 16 piccoli frammenti di carta, rimossi al
+termine; la preferenza “riduci movimento” evita animazioni e frammenti. Se lo
+sfondo non si carica, resta un gradiente mare/cielo e l’invito è utilizzabile. Senza JavaScript,
 restano visibili i dettagli e la location, con un avviso per il form.
 Il dialog gestisce tastiera, focus, Escape e ritorno al pulsante di conferma.
 
-Lo sfondo è un asset originale generato con ImageGen; font e immagini sono
-locali, circa 1 MB complessivo. Provenienza, prompt e licenze sono in
+Le illustrazioni sono SVG originali creati nel progetto, senza acquisti né
+hotlink. Immagini, CSS e font sono locali, circa 320 kB complessivi.
+Provenienza, utilizzo e licenza del font conservato sono in
 [`assets/README.md`](assets/README.md).
 
 ## Supabase
@@ -176,15 +179,36 @@ npx --yes --package @playwright/cli playwright-cli -s=kevin open http://127.0.0.
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/invitation.browser.js
 ```
 
-Il 2 ottobre 2026 sono passate le verifiche in Chrome a 320, 360, 390, 430 e
-1440 px: assenza di overflow, apertura da tastiera, due azioni principali,
-dialog e focus, countdown, movimento ridotto, sfondo mancante, errore simulato
-seguito da retry con lo stesso ID, nessun dato nello storage e nessun errore JS.
-L’invio reale dal form ha salvato correttamente una risposta fittizia con consenso
-e mostrato “Risposta ricevuta”; il record di prova è stato verificato ed eliminato.
-È stato verificato anche il caricamento sotto un percorso di progetto Pages,
-con immagini e font locali correttamente risolti.
-I test mobili usano viewport di Chrome: Safari e un iPhone reale restano da provare.
+### Verifiche del redesign One Piece — 2 ottobre 2026
+
+Sono passate le verifiche in Chrome a 320, 360, 390, 430, 768, 1024 e 1440 px:
+nessun overflow, busta interamente nel viewport, rotazione reale del lembo,
+apertura da tastiera, click ripetuti con una sola apertura, sblocco dello scroll,
+Location con destinazione corretta, dialog, focus ed Escape. Countdown,
+movimento ridotto e funzionamento senza sfondo sono verificati.
+
+Il flusso RSVP è stato verificato con risposte simulate: campi obbligatori,
+nome composto soltanto da spazi, consenso allergie, caricamento, errore 503,
+retry con gli stessi dati e ID, conferma positiva e negativa. Nessun dato
+personale nello storage del browser. Nessun errore JavaScript o asset mancante
+nel caricamento normale; i fallimenti di rete provocati dai test sono intenzionali.
+Anche i test Node del backend e Python del server sono passati. Un controllo
+aggiuntivo con touch emulato ha verificato due tap consecutivi, il popup
+Location (navigazione intercettata per controllarne la destinazione), la vista
+orizzontale 844 × 390 e il fallback senza JavaScript, senza errori console.
+
+`EVENT_CONFIG` è identico alla versione precedente, compreso l’endpoint.
+Il backend non è stato modificato o ridistribuito. Il preflight reale dell’endpoint
+ha restituito HTTP 204 con CORS corretto; in questa verifica del redesign non è
+stata creata una nuova risposta nel database. Le immagini SVG sono XML validi,
+la sintassi JavaScript è verificata e non restano riferimenti agli asset precedenti.
+
+Prima del redesign, nella stessa data, erano già stati verificati un invio reale
+con salvataggio e successiva eliminazione del record fittizio e il caricamento
+sotto un percorso di progetto Pages. Queste verifiche precedenti non vanno
+confuse con gli invii simulati del nuovo tema.
+I test mobili usano Chrome: Safari e un iPhone reale restano da provare.
+Le anteprime sono in `output/playwright/`, escluso da Git.
 
 Per applicare future migrazioni e distribuire modifiche alla funzione:
 

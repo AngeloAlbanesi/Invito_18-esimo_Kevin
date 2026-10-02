@@ -3,429 +3,45 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#030509">
+    <meta name="theme-color" content="#bce1dd">
     <meta name="description" content="Un invito speciale per i 18 anni di Kevin Tobia. 28 novembre 2026, La Fornace, Colledara.">
-    <title>Kevin Tobia · Diciotto</title>
+    <title>Kevin Tobia · 18 anni · One Piece</title>
     <link rel="icon" href="./assets/images/favicon.svg" type="image/svg+xml">
-    <link rel="preload" href="./assets/images/invitation-scene.jpg" as="image">
+    <link rel="preload" href="./assets/images/ocean-scene.svg" as="image">
     <link rel="preload" href="./assets/fonts/cormorant-garamond.ttf" as="font" type="font/ttf" crossorigin>
-    <link rel="preload" href="./assets/fonts/great-vibes.ttf" as="font" type="font/ttf" crossorigin>
-    <style>
-        @font-face {
-            font-family: Cormorant;
-            src: url('./assets/fonts/cormorant-garamond.ttf') format('truetype');
-            font-weight: 500;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Great Vibes';
-            src: url('./assets/fonts/great-vibes.ttf') format('truetype');
-            font-weight: 400;
-            font-display: swap;
-        }
-        :root {
-            color-scheme: dark;
-            --black: #030509;
-            --blue: #091b39;
-            --gold: #d9ba73;
-            --champagne: #f3e4c4;
-            --muted: #c4bcad;
-            --gold-line: rgba(217, 186, 115, .38);
-            font-family: Arial, sans-serif;
-            color: var(--champagne);
-            background: var(--black);
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            background: radial-gradient(ellipse at 50% 20%, #0d1b30, var(--black) 65%);
-        }
-        body[data-state='closed'], body[data-state='opening'] { overflow: hidden; }
-        button, input, textarea { font: inherit; }
-        button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
-        button { cursor: pointer; }
-        button:disabled { cursor: default; }
-        a { color: inherit; }
-        [hidden] { display: none !important; }
-        :focus-visible { outline: 2px solid #ffe1a2; outline-offset: 5px; }
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip-path: inset(50%);
-            white-space: nowrap;
-            border: 0;
-        }
-        .stage {
-            position: relative;
-            isolation: isolate;
-            max-width: 600px;
-            min-height: 100vh;
-            min-height: 100svh;
-            margin: auto;
-            overflow: clip;
-            background: #030509;
-            box-shadow: 0 0 100px #0008;
-        }
-        body[data-state='closed'] .stage, body[data-state='opening'] .stage { height: 100vh; height: 100svh; }
-        .scenery {
-            position: absolute;
-            z-index: -2;
-            inset: 0 0 auto;
-            width: 100%;
-            height: auto;
-            pointer-events: none;
-            opacity: .88;
-            mask-image: linear-gradient(#000 82%, transparent);
-        }
-        .ambient {
-            position: absolute;
-            z-index: -1;
-            inset: 0;
-            pointer-events: none;
-            background: radial-gradient(ellipse at 50% 38%, #10295718, transparent 45%);
-        }
-        body.scene-unavailable .ambient {
-            background: radial-gradient(ellipse at 50% 10%, #18396799, transparent 55%);
-        }
-        body.scene-unavailable .scenery { display: none; }
-        .intro {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 155px 20px 100px;
-            text-align: center;
-            transition: opacity .4s;
-        }
-        body:not(.ready) .intro { opacity: 0; }
-        body[data-state='opened'] .intro { display: none; }
-        .intro-content { width: 100%; }
-        .eyebrow {
-            margin: 0;
-            font-size: 10px;
-            line-height: 1.8;
-            letter-spacing: .26em;
-            text-transform: uppercase;
-            color: var(--gold);
-        }
-        .intro-heading {
-            margin: 11px 0 36px;
-            font: 500 clamp(24px, 6.5vw, 34px)/1.25 Cormorant, Georgia, serif;
-        }
-        .envelope {
-            position: relative;
-            display: block;
-            width: min(86%, 380px);
-            aspect-ratio: 1.5;
-            margin: 0 auto;
-            padding: 0;
-            border: 0;
-            background: transparent;
-            perspective: 900px;
-            isolation: isolate;
-            filter: drop-shadow(0 25px 25px #0008);
-        }
-        .envelope-back, .envelope-letter, .envelope-front, .envelope-flap {
-            position: absolute;
-            inset: 0;
-            border-radius: 3px;
-        }
-        .envelope-back {
-            z-index: 0;
-            border: 1px solid #b98f48;
-            background: linear-gradient(140deg, #183556, #07152b 55%, #172a46);
-        }
-        .envelope-letter {
-            z-index: 1;
-            inset: 13px 15px 8px;
-            border: 1px solid #c3a066;
-            background: linear-gradient(135deg, #152f51, #051126);
-            display: grid;
-            place-content: center;
-            color: var(--gold);
-            font: 400 70px/1 'Great Vibes', cursive;
-            box-shadow: 0 0 26px #d9ba7333;
-        }
-        .envelope-front { z-index: 3; width: 100%; height: 100%; }
-        .envelope-flap {
-            z-index: 4;
-            height: 65%;
-            clip-path: polygon(0 0, 100% 0, 50% 100%);
-            transform-origin: center top;
-            background: linear-gradient(157deg, #b8995e 0%, #243d5e 1%, #0b1d38 53%, #bd9c5b 99%);
-            backface-visibility: visible;
-        }
-        .seal {
-            position: absolute;
-            z-index: 5;
-            top: 49%;
-            left: calc(50% - 32px);
-            display: grid;
-            place-content: center;
-            width: 64px;
-            height: 64px;
-            border: 3px double #9d702b;
-            border-radius: 50%;
-            color: #594015;
-            background: conic-gradient(from 20deg, #ac7c34, #f8dfa0, #c49a4c, #f0cf83, #9d6e2a, #e7c580, #ac7c34);
-            box-shadow: inset 0 0 0 4px #f7df9a55, 0 5px 12px #0007;
-            font: 500 29px/1 Cormorant, Georgia, serif;
-            text-shadow: 0 1px 0 #fbe6b2;
-            transition: filter .3s, transform .3s;
-        }
-        .envelope:hover .seal { filter: brightness(1.12); }
-        .open-hint { margin: 30px 0 0; font-size: 11px; letter-spacing: .08em; }
-        .open-hint::before {
-            content: '';
-            display: block;
-            width: 1px;
-            height: 24px;
-            margin: 0 auto 13px;
-            background: linear-gradient(transparent, var(--gold));
-        }
-        .intro-date {
-            position: absolute;
-            bottom: max(34px, env(safe-area-inset-bottom));
-            left: 20px;
-            right: 20px;
-            font-size: 9px;
-            letter-spacing: .17em;
-            color: var(--muted);
-        }
-        body[data-state='opening'] .seal { animation: unseal .5s both; }
-        body[data-state='opening'] .envelope-flap { animation: unfold .85s .3s both; }
-        body[data-state='opening'] .envelope-letter { animation: letter-rise 1.2s .7s both; }
-        body[data-state='opening'] .envelope { animation: envelope-exit .7s 1.5s both; }
-        body[data-state='opening'] .intro-heading,
-        body[data-state='opening'] .open-hint,
-        body[data-state='opening'] .intro-date { opacity: 0; transition: opacity .3s; }
-        @keyframes unseal {
-            35% { filter: brightness(1.5); transform: scale(1.1); }
-            to { opacity: 0; transform: translateY(20px) rotate(15deg) scale(.85); }
-        }
-        @keyframes unfold {
-            49% { z-index: 4; }
-            50%, 100% { z-index: 0; }
-            to { transform: rotateX(180deg); }
-        }
-        @keyframes letter-rise { to { transform: translateY(-55%); } }
-        @keyframes envelope-exit { to { transform: translateY(110px) scale(.92); opacity: 0; } }
-        .invitation {
-            padding: clamp(147px, 39vw, 225px) 23px max(35px, env(safe-area-inset-bottom));
-            text-align: center;
-            min-height: 100vh;
-            min-height: 100svh;
-        }
-        body[data-state='closed'] .invitation { visibility: hidden; opacity: 0; }
-        body[data-state='opening'] .invitation { animation: reveal 1s 1.2s both; }
-        @keyframes reveal { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-        .age {
-            margin: -6px 0 -14px;
-            font: 500 clamp(154px, 45vw, 235px)/1 Cormorant, Georgia, serif;
-            letter-spacing: -.055em;
-            padding-right: .055em;
-            color: #e2c288;
-            background: linear-gradient(110deg, #a77a37 8%, #f3dfac 28%, #bf9247 44%, #ffe8ac 57%, #ad7d37 73%, #e9c989 90%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .name {
-            position: relative;
-            margin: 0;
-            font: 400 clamp(51px, 15.5vw, 88px)/1.3 'Great Vibes', 'Brush Script MT', cursive;
-            color: #f5e5c4;
-            text-shadow: 0 2px 22px #000;
-        }
-        .name:focus { outline: none; }
-        .ornament { display: block; width: 162px; height: 18px; margin: 19px auto 22px; color: var(--gold); }
-        .event-date { margin: 0; font: 500 clamp(19px, 5.1vw, 27px)/1.3 Cormorant, Georgia, serif; letter-spacing: .12em; text-transform: uppercase; }
-        .event-time { margin: 10px 0 0; font-size: 11px; letter-spacing: .09em; color: var(--muted); }
-        .venue { margin: 29px 0 4px; font: 500 28px/1.2 Cormorant, Georgia, serif; }
-        .address { margin: 0; font-size: 11px; line-height: 1.6; color: var(--muted); }
-        .actions { display: flex; justify-content: center; gap: 35px; margin: 30px 0 0; }
-        .action {
-            width: 109px;
-            padding: 0;
-            border: 0;
-            color: var(--champagne);
-            background: transparent;
-            text-decoration: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            font-size: 11px;
-            line-height: 1.5;
-        }
-        .action-icon {
-            display: grid;
-            place-items: center;
-            width: 62px;
-            height: 62px;
-            border: 1px solid #b08a4f;
-            border-radius: 50%;
-            color: var(--gold);
-            background: radial-gradient(ellipse at 30% 15%, #19355a, #071429 70%);
-            box-shadow: inset 0 0 0 4px #091324, 0 4px 20px #0006;
-            transition: transform .2s, box-shadow .2s;
-        }
-        .action:hover .action-icon, .action:focus-visible .action-icon {
-            box-shadow: inset 0 0 0 4px #091324, 0 0 22px #d9ba7333;
-            transform: translateY(-3px);
-        }
-        .action:active .action-icon { transform: scale(.94); }
-        .action svg { width: 25px; height: 25px; }
-        .countdown { margin: 46px auto 0; max-width: 345px; }
-        .countdown-label { margin: 0 0 14px; font: 500 20px/1.2 Cormorant, Georgia, serif; }
-        .countdown-note { margin: auto; max-width: 275px; font-size: 11px; line-height: 1.9; color: var(--muted); }
-        .countdown-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .countdown-grid strong { display: block; font: 500 32px/1.3 Cormorant, Georgia, serif; color: var(--gold); }
-        .countdown-grid span { font-size: 9px; letter-spacing: .08em; color: var(--muted); }
-        .closing { margin: 39px 0 10px; font: 500 italic 24px/1.3 Cormorant, Georgia, serif; }
-        .signature { margin: 0; font: 400 33px/1.6 'Great Vibes', cursive; color: var(--gold); }
-        .petals { position: absolute; inset: 0; z-index: 6; overflow: hidden; pointer-events: none; }
-        .petal {
-            position: absolute;
-            top: -30px;
-            width: 15px;
-            height: 22px;
-            border-radius: 75% 15% 70% 25%;
-            background: radial-gradient(ellipse at 25% 20%, #4b81d0, #163e89 48%, #071b3a);
-            box-shadow: inset 1px 1px 2px #7190c733;
-        }
-        dialog {
-            width: min(480px, calc(100% - 28px));
-            max-height: calc(100vh - 32px);
-            max-height: calc(100dvh - 32px);
-            margin: auto;
-            padding: 30px clamp(20px, 5vw, 36px);
-            overflow-y: auto;
-            border: 1px solid #a8864c;
-            border-radius: 9px;
-            color: var(--champagne);
-            background: radial-gradient(ellipse at top right, #172b47, #080e1b 62%);
-            box-shadow: 0 25px 90px #000a;
-        }
-        dialog::backdrop { background: #02040bd9; backdrop-filter: blur(4px); }
-        .dialog-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: grid;
-            place-items: center;
-            width: 44px;
-            height: 44px;
-            border: 0;
-            color: var(--champagne);
-            background: transparent;
-        }
-        .dialog-close svg { width: 19px; height: 19px; }
-        .dialog-title { margin: 8px 0; font: 500 42px/1.1 Cormorant, Georgia, serif; }
-        .dialog-intro { margin: 0 0 24px; font-size: 12px; line-height: 1.8; color: var(--muted); }
-        fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-        .name-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
-        .field-label, legend { display: block; margin: 0 0 9px; font-size: 12px; line-height: 1.5; }
-        input[type='text'], textarea {
-            width: 100%;
-            padding: 13px 12px;
-            border: 1px solid #8c9bb547;
-            border-radius: 4px;
-            color: #f5ecdc;
-            background: #030a16b3;
-            font-size: 16px;
-            line-height: 1.4;
-        }
-        input[type='text'] { min-height: 48px; }
-        textarea { min-height: 90px; resize: vertical; }
-        input:focus, textarea:focus { border-color: var(--gold); }
-        input:disabled, textarea:disabled { opacity: .65; }
-        .attendance { margin-top: 22px; }
-        .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .choice {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            min-height: 48px;
-            padding: 13px;
-            border: 1px solid #8c9bb547;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .choice:has(:checked) { border-color: var(--gold); background: #17315055; }
-        input[type='radio'], input[type='checkbox'] { accent-color: var(--gold); width: 17px; height: 17px; flex-shrink: 0; }
-        .allergies { margin-top: 22px; }
-        .checkbox-label { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; line-height: 1.7; cursor: pointer; }
-        .checkbox-label input { margin: 2px 0 0; }
-        .allergy-details { margin-top: 18px; }
-        .consent { margin-top: 12px; font-size: 11px; color: var(--muted); }
-        .privacy { margin: 22px 0 0; font-size: 10px; line-height: 1.8; color: var(--muted); }
-        .send-button {
-            display: block;
-            width: 100%;
-            min-height: 48px;
-            margin: 22px 0 0;
-            padding: 13px 16px;
-            border: 1px solid #b79755;
-            border-radius: 4px;
-            color: #11151a;
-            background: linear-gradient(110deg, #bd944e, #f1d699 50%, #c49d59);
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: .035em;
-        }
-        .send-button:disabled { opacity: .55; }
-        .form-message { margin: 15px 0 0; font-size: 12px; line-height: 1.7; color: #ffcfaa; }
-        .preview-note { font-size: 12px; line-height: 1.7; color: #ffcfaa; }
-        .success { padding: 15px 0; text-align: center; }
-        .success-symbol { display: block; width: 52px; height: 52px; margin: 4px auto 24px; color: var(--gold); }
-        .success h3 { margin: 0 0 12px; font: 500 34px/1.2 Cormorant, Georgia, serif; }
-        .success p { font-size: 13px; line-height: 1.8; color: var(--muted); }
-        @media (min-width: 650px) {
-            .stage { border-inline: 1px solid #d9ba7318; }
-            .invitation { padding-bottom: 45px; }
-        }
-        @media (max-height: 700px) {
-            .intro { padding-top: 135px; padding-bottom: 60px; }
-            .intro-heading { margin-bottom: 24px; }
-            .envelope { max-width: 285px; }
-            .open-hint { margin-top: 20px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
-            .petals { display: none; }
-        }
-    </style>
+    <link rel="stylesheet" href="./assets/invitation.css">
 </head>
 <body data-state="opened">
     <main class="stage">
-        <img class="scenery" id="scenery" src="./assets/images/invitation-scene.jpg" alt="" width="1024" height="1536" fetchpriority="high">
+        <img class="scenery" id="scenery" src="./assets/images/ocean-scene.svg" alt="" width="1440" height="1100" fetchpriority="high">
         <div class="ambient" aria-hidden="true"></div>
+        <header class="masthead">
+            <div class="brand">
+                <img src="./assets/images/crew-mark.svg" alt="" width="44" height="44">
+                <div><strong>ONE PIECE</strong><span>UNA FESTA. UNA CIURMA.</span></div>
+            </div>
+            <p class="chapter">CAPITOLO 018<br><span data-event-date>28 novembre 2026</span></p>
+        </header>
         <section class="intro" aria-label="Apri il tuo invito" hidden>
             <div class="intro-content">
-                <p class="eyebrow">Un invito speciale</p>
-                <p class="intro-heading">Una notte. Un nuovo inizio.</p>
+                <p class="eyebrow">Un messaggio dalla ciurma di Cappello di Paglia</p>
+                <p class="intro-heading">La prossima avventura<br><em>comincia con te.</em></p>
                 <button class="envelope" id="open-invitation" type="button" aria-label="Apri l’invito" aria-describedby="open-hint">
                     <span class="envelope-back" aria-hidden="true"></span>
-                    <span class="envelope-letter" aria-hidden="true">K</span>
+                    <span class="envelope-letter" aria-hidden="true">18</span>
                     <svg class="envelope-front" viewBox="0 0 380 253" aria-hidden="true">
                         <defs>
-                            <linearGradient id="left-fold" x2="1" y2="1"><stop stop-color="#173351"/><stop offset="1" stop-color="#0a1930"/></linearGradient>
-                            <linearGradient id="right-fold" x2="0" y2="1"><stop stop-color="#142a45"/><stop offset="1" stop-color="#07132a"/></linearGradient>
-                            <linearGradient id="bottom-fold" x2=".5" y2="1"><stop stop-color="#183453"/><stop offset="1" stop-color="#091930"/></linearGradient>
+                            <linearGradient id="left-fold" x2="1" y2="1"><stop stop-color="#eddbb0"/><stop offset="1" stop-color="#d9c08d"/></linearGradient>
+                            <linearGradient id="right-fold" x2="0" y2="1"><stop stop-color="#f0deb4"/><stop offset="1" stop-color="#d1b581"/></linearGradient>
+                            <linearGradient id="bottom-fold" x2=".5" y2="1"><stop stop-color="#f9edca"/><stop offset="1" stop-color="#dfc899"/></linearGradient>
                         </defs>
-                        <path d="M1 1L190 155L1 252Z" fill="url(#left-fold)" stroke="#a78852" stroke-width=".8"/>
-                        <path d="M379 1L190 155L379 252Z" fill="url(#right-fold)" stroke="#a78852" stroke-width=".8"/>
-                        <path d="M1 252L190 104L379 252Z" fill="url(#bottom-fold)" stroke="#a78852" stroke-width=".8"/>
+                        <path d="M1 1L190 155L1 252Z" fill="url(#left-fold)" stroke="#a38b61" stroke-width=".8"/>
+                        <path d="M379 1L190 155L379 252Z" fill="url(#right-fold)" stroke="#a38b61" stroke-width=".8"/>
+                        <path d="M1 252L190 104L379 252Z" fill="url(#bottom-fold)" stroke="#a38b61" stroke-width=".8"/>
                     </svg>
                     <span class="envelope-flap" aria-hidden="true"></span>
-                    <span class="seal" aria-hidden="true">18</span>
+                    <span class="envelope-stamp" aria-hidden="true">POSTA DELLA CIURMA</span>
+                    <span class="seal" aria-hidden="true"><img src="./assets/images/crew-mark.svg" alt="" width="47" height="47"></span>
                 </button>
                 <p class="open-hint" id="open-hint">Tocca il sigillo per aprire</p>
             </div>
@@ -433,17 +49,22 @@
         </section>
 
         <article class="invitation" id="invitation" aria-labelledby="event-name">
-            <p class="eyebrow">Sei invitato al mio diciottesimo compleanno</p>
+            <img class="crew-emblem" src="./assets/images/crew-mark.svg" alt="" width="65" height="61">
+            <p class="eyebrow">La ciurma di Cappello di Paglia ti aspetta</p>
+            <p class="invitation-kicker">Si salpa per i miei</p>
             <div class="age" data-event-age aria-hidden="true">18</div>
+            <p class="age-caption">ANNI · UN NUOVO CAPITOLO</p>
             <h1 class="name" id="event-name" data-event-name tabindex="-1">Kevin Tobia</h1>
-            <svg class="ornament" viewBox="0 0 162 18" fill="none" aria-hidden="true"><path d="M0 9H65M97 9H162" stroke="currentColor" stroke-width=".6"/><path d="M81 3L87 9L81 15L75 9Z" stroke="currentColor" stroke-width=".8"/><circle cx="69" cy="9" r="1" fill="currentColor"/><circle cx="93" cy="9" r="1" fill="currentColor"/></svg>
+            <p class="invitation-copy">Ogni grande avventura ha bisogno della sua ciurma.<br>Vieni a festeggiare il mio diciottesimo!</p>
+            <svg class="ornament" viewBox="0 0 190 12" fill="none" aria-hidden="true"><path d="M1 4q5-6 10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0M1 8q5-6 10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t10 0t8 0" stroke="currentColor" stroke-width="1.3"/></svg>
             <p class="event-date"><time data-event-date datetime="2026-11-28">28 novembre 2026</time></p>
             <p class="event-time" id="event-time">Ore 20:00</p>
+            <p class="destination">LA NOSTRA DESTINAZIONE</p>
             <p class="venue" id="venue-name">La Fornace</p>
             <p class="address" id="venue-address">SP40, 64042 Colledara TE</p>
             <nav class="actions" aria-label="Azioni dell’invito">
                 <a class="action" id="location-link" href="https://www.google.com/maps/search/?api=1&amp;query=La%20Fornace%2C%20SP40%2C%2064042%20Colledara%20TE" target="_blank" rel="noopener noreferrer">
-                    <span class="action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                    <span class="action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6Z"/><path d="M12 1v2m0 18v2M1 12h2m18 0h2"/></svg></span>
                     <span>Location</span>
                 </a>
                 <button class="action" id="rsvp-open" type="button" aria-haspopup="dialog">
@@ -452,7 +73,7 @@
                 </button>
             </nav>
             <section class="countdown" aria-label="Attesa della festa">
-                <p class="countdown-label">Il prossimo capitolo sta per iniziare</p>
+                <p class="countdown-label">Manca poco alla partenza</p>
                 <p class="countdown-note" id="countdown-note">Countdown disponibile appena sarà definito l’orario.</p>
                 <div class="countdown-grid" id="countdown-grid" hidden>
                     <div><strong id="countdown-days">00</strong><span>GIORNI</span></div>
@@ -461,17 +82,18 @@
                     <div><strong id="countdown-seconds">00</strong><span>SECONDI</span></div>
                 </div>
             </section>
-            <p class="closing">Ti aspetto per una notte speciale.</p>
+            <p class="closing">Il tesoro più bello? Festeggiare insieme.</p>
             <p class="signature" id="signature" aria-hidden="true">Kevin</p>
         </article>
-        <div class="petals" id="petals" aria-hidden="true"></div>
+        <aside class="sea-note" aria-hidden="true"><p>Rotta verso<br>una nuova avventura.</p><span>IL VIAGGIO COMINCIA A DICIOTTO.</span></aside>
+        <div class="paper-fragments" id="paper-fragments" aria-hidden="true"></div>
     </main>
 
     <dialog id="rsvp-dialog" aria-labelledby="rsvp-title" aria-describedby="rsvp-description">
         <button class="dialog-close" id="rsvp-close" type="button" aria-label="Chiudi conferma presenza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
-        <p class="eyebrow">Una notte da condividere</p>
-        <h2 class="dialog-title" id="rsvp-title">Ci sarai?</h2>
-        <p class="dialog-intro" id="rsvp-description">Lascia la tua risposta. Mi aiuterai a rendere questa serata speciale.</p>
+        <p class="eyebrow">Registro di bordo · RSVP</p>
+        <h2 class="dialog-title" id="rsvp-title">Entra nella ciurma.</h2>
+        <p class="dialog-intro" id="rsvp-description">Conferma presenza e sali a bordo della festa. La tua risposta mi aiuterà a organizzare questa avventura.</p>
         <p class="preview-note" id="preview-note" hidden>Il form è in anteprima: la raccolta delle conferme non è configurata.</p>
         <form id="rsvp-form">
             <fieldset id="rsvp-fields">
@@ -564,7 +186,7 @@
         const dateLabel = new Intl.DateTimeFormat('it-IT', {
             day: 'numeric', month: 'long', year: 'numeric', timeZone: EVENT_CONFIG.timeZone,
         }).format(new Date(EVENT_CONFIG.date + 'T12:00:00+01:00'));
-        document.title = EVENT_CONFIG.name + ' · Diciotto';
+        document.title = EVENT_CONFIG.name + ' · 18 anni · One Piece';
         document.querySelectorAll('[data-event-name]').forEach((element) => { element.textContent = EVENT_CONFIG.name; });
         document.querySelectorAll('[data-event-date]').forEach((element) => {
             element.textContent = dateLabel;
@@ -572,8 +194,7 @@
         });
         document.querySelector('[data-event-age]').textContent = EVENT_CONFIG.age;
         document.getElementById('signature').textContent = EVENT_CONFIG.name.split(' ')[0];
-        document.querySelector('.envelope-letter').textContent = EVENT_CONFIG.name[0];
-        document.querySelector('.seal').textContent = EVENT_CONFIG.age;
+        document.querySelector('.envelope-letter').textContent = EVENT_CONFIG.age;
         document.getElementById('event-time').textContent = EVENT_CONFIG.time ? 'Ore ' + EVENT_CONFIG.time : 'Orario da definire';
         document.getElementById('venue-name').textContent = EVENT_CONFIG.venueName || 'Location da definire';
         document.getElementById('venue-address').textContent = EVENT_CONFIG.venueAddress || '';
@@ -593,23 +214,23 @@
             new Promise((resolve) => setTimeout(resolve, 1500)),
         ]).then(() => { document.body.classList.add('ready'); });
 
-        function releasePetals() {
+        function releasePaperFragments() {
             if (reducedMotion.matches || document.hidden) return;
-            const container = document.getElementById('petals');
-            for (let petalIndex = 0; petalIndex < 16; petalIndex += 1) {
-                const petal = document.createElement('span');
-                petal.className = 'petal';
-                petal.style.left = Math.random() * 100 + '%';
-                petal.style.opacity = .4 + Math.random() * .5;
-                container.append(petal);
+            const container = document.getElementById('paper-fragments');
+            for (let fragmentIndex = 0; fragmentIndex < 16; fragmentIndex += 1) {
+                const fragment = document.createElement('span');
+                fragment.className = 'paper-fragment';
+                fragment.style.left = Math.random() * 100 + '%';
+                fragment.style.opacity = .4 + Math.random() * .5;
+                container.append(fragment);
                 const drift = Math.random() * 160 - 80;
                 const rotation = Math.random() * 540 - 270;
-                const animation = petal.animate([
+                const animation = fragment.animate([
                     { transform: 'translate(0, -20px) rotate(0deg) scale(.7)', opacity: 0 },
                     { opacity: .8, offset: .15 },
                     { transform: `translate(${drift}px, ${window.innerHeight + 80}px) rotate(${rotation}deg) scale(1)`, opacity: 0 },
                 ], { duration: 2700 + Math.random() * 1800, delay: Math.random() * 500, easing: 'ease-in', fill: 'both' });
-                animation.finished.then(() => petal.remove(), () => petal.remove());
+                animation.finished.then(() => fragment.remove(), () => fragment.remove());
             }
         }
 
@@ -618,7 +239,7 @@
             openingState = 'opening';
             openButton.disabled = true;
             document.body.dataset.state = 'opening';
-            releasePetals();
+            releasePaperFragments();
             await new Promise((resolve) => setTimeout(resolve, reducedMotion.matches ? 0 : 2400));
             openingState = 'opened';
             document.body.dataset.state = 'opened';
@@ -652,7 +273,7 @@
         updateCountdown();
         document.addEventListener('visibilitychange', () => {
             updateCountdown();
-            if (document.hidden) document.getElementById('petals').replaceChildren();
+            if (document.hidden) document.getElementById('paper-fragments').replaceChildren();
         });
 
         const backendReady = EVENT_CONFIG.rsvp.mode === 'backend' && Boolean(EVENT_CONFIG.rsvp.endpoint);
@@ -746,6 +367,7 @@
             formFields.disabled = true;
             submitButton.disabled = true;
             submitButton.textContent = 'Invio in corso…';
+            submitButton.setAttribute('aria-busy', 'true');
             formMessage.hidden = true;
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 15000);
@@ -768,8 +390,8 @@
                 form.hidden = true;
                 document.getElementById('rsvp-success').hidden = false;
                 document.getElementById('success-message').textContent = pendingSubmission.attending
-                    ? 'Grazie! Non vedo l’ora di festeggiare insieme a te.'
-                    : 'Grazie per avermi avvisato. Ti porterò con me in questa serata speciale.';
+                    ? 'Sei a bordo! La ciurma ti aspetta per festeggiare insieme.'
+                    : 'Grazie per avermi avvisato. Ci ritroveremo alla prossima avventura!';
                 document.getElementById('success-close').focus();
             } catch (error) {
                 if (error.name === 'AbortError') {
@@ -783,6 +405,7 @@
             } finally {
                 clearTimeout(timeout);
                 sending = false;
+                submitButton.removeAttribute('aria-busy');
                 submitButton.disabled = saved;
                 submitButton.textContent = pendingSubmission ? 'Riprova invio' : 'Invia la mia risposta';
             }

@@ -4,6 +4,8 @@ async (page) => {
     };
     const scriptErrors = [];
     const missingAssets = [];
+    const verifiedLayouts = [];
+    await page.unrouteAll();
     page.on('pageerror', (error) => scriptErrors.push(error.message));
     page.on('response', (response) => {
         if (response.url().includes('/assets/') && response.status() >= 400) missingAssets.push(response.url());
@@ -15,17 +17,25 @@ async (page) => {
         { width: 360, height: 740 },
         { width: 390, height: 844 },
         { width: 430, height: 932 },
+        { width: 768, height: 1024 },
+        { width: 1024, height: 768 },
         { width: 1440, height: 900 },
     ]) {
         await page.setViewportSize(dimensions);
         await page.goto('http://127.0.0.1:8000/');
         await page.locator('body.ready').waitFor();
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('.envelope')).opacity === '1'
+            && getComputedStyle(document.querySelector('.intro')).opacity === '1');
+        verify(await page.locator('#scenery').evaluate((element) => element.naturalWidth > 0), 'Ocean illustration did not load');
         verify(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Intro overflows horizontally');
+        verify(await envelopeIsInsideViewport(page), 'Envelope is clipped by the viewport');
+        await page.screenshot({ path: `output/playwright/intro-${dimensions.width}.png` });
         const envelope = page.getByRole('button', { name: 'Apri l’invito' });
         await envelope.focus();
         await page.keyboard.press('Enter');
-        await page.evaluate(() => document.getElementById('open-invitation').click());
-        verify(await page.locator('.petal').count() <= 16, 'Duplicate opening created too many petals');
+        await page.locator('#open-invitation').dispatchEvent('click');
+        verify(await page.locator('.paper-fragment').count() === 16, 'Repeated opening did not create exactly one batch of fragments');
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('.envelope-flap')).transform.startsWith('matrix3d'));
         await page.locator('body[data-state="opened"]').waitFor();
         verify(await page.evaluate(() => document.activeElement.id === 'event-name'), 'Opening did not move focus');
         verify(await page.evaluate(() => getComputedStyle(document.body).overflow !== 'hidden'), 'Scroll stayed locked');
@@ -42,9 +52,9 @@ async (page) => {
         verify(await page.evaluate(() => document.getElementById('rsvp-dialog').contains(document.activeElement)), 'Focus escaped the dialog');
         await page.keyboard.press('Escape');
         verify(await page.evaluate(() => document.activeElement.id === 'rsvp-open'), 'Escape did not restore focus');
-        await page.waitForFunction(() => document.querySelectorAll('.petal').length === 0);
+        await page.waitForFunction(() => document.querySelectorAll('.paper-fragment').length === 0);
         await page.screenshot({ path: `output/playwright/invitation-${dimensions.width}.png`, fullPage: true });
-        console.log(`Layout and keyboard: ${dimensions.width} × ${dimensions.height} OK`);
+        verifiedLayouts.push(`${dimensions.width} × ${dimensions.height}`);
     }
 
     const countdownChecks = await page.evaluate(() => {
@@ -70,7 +80,7 @@ async (page) => {
     await page.getByRole('button', { name: 'Apri l’invito' }).focus();
     await page.keyboard.press('Space');
     await page.locator('body[data-state="opened"]').waitFor();
-    verify(await page.locator('.petal').count() === 0, 'Reduced motion created particles');
+    verify(await page.locator('.paper-fragment').count() === 0, 'Reduced motion created particles');
     await page.getByRole('button', { name: 'Conferma presenza', exact: true }).click();
     await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('Verifica');
     await page.getByRole('textbox', { name: 'Cognome', exact: true }).fill('Simulata');
@@ -78,6 +88,7 @@ async (page) => {
     await page.getByRole('checkbox', { name: /Vorrei segnalare/ }).check();
     await page.getByRole('textbox', { name: 'Quali allergie o intolleranze?' }).fill('TEST: dato fittizio');
     verify(await page.locator('#allergy-consent').evaluate((element) => element.required), 'Consent is not required');
+    verify(await page.locator('#rsvp-form').evaluate((element) => !element.checkValidity()), 'Allergy details without consent are accepted');
     await page.getByRole('checkbox', { name: /Acconsento/ }).check();
     await page.screenshot({ path: 'output/playwright/form-mobile.png' });
 
@@ -98,6 +109,7 @@ async (page) => {
         });
     });
     await page.getByRole('button', { name: 'Invia la mia risposta' }).click();
+    verify(await page.locator('#rsvp-submit').getAttribute('aria-busy') === 'true', 'Sending state is missing');
     await page.evaluate(() => document.getElementById('rsvp-form').dispatchEvent(new Event('submit', { cancelable: true })));
     await page.getByRole('button', { name: 'Riprova invio' }).waitFor();
     verify(submissions.length === 1, 'Repeated submit made duplicate requests');
@@ -108,20 +120,59 @@ async (page) => {
     await page.getByRole('heading', { name: 'Risposta ricevuta' }).waitFor();
     verify(submissions.length === 2 && submissions[0].requestId === submissions[1].requestId, 'Retry changed the request ID');
     verify(JSON.stringify(submissions[0]) === JSON.stringify(submissions[1]), 'Retry changed the submitted data');
+    verify(await page.locator('#rsvp-submit').getAttribute('aria-busy') === null, 'Sending state did not finish');
+    await page.screenshot({ path: 'output/playwright/rsvp-success-mobile.png' });
     verify(await page.evaluate(() => localStorage.length === 0 && sessionStorage.length === 0), 'Guest data was saved in browser storage');
     await page.unroute('**/functions/v1/rsvp');
     await page.getByRole('button', { name: 'Torna all’invito' }).click();
 
-    await page.route('**/assets/images/invitation-scene.jpg', (route) => route.abort());
+    await page.reload();
+    await page.locator('body.ready').waitFor();
+    await page.getByRole('button', { name: 'Apri l’invito' }).click();
+    await page.locator('body[data-state="opened"]').waitFor();
+    await page.getByRole('button', { name: 'Conferma presenza', exact: true }).click();
+    let declinedSubmission;
+    await page.route('**/functions/v1/rsvp', async (route) => {
+        declinedSubmission = route.request().postDataJSON();
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{"ok":true}' });
+    });
+    await page.getByRole('button', { name: 'Invia la mia risposta' }).click();
+    verify(declinedSubmission === undefined, 'Empty form sent a request');
+    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('   ');
+    await page.getByRole('textbox', { name: 'Cognome', exact: true }).fill('Verifica');
+    await page.getByRole('radio', { name: 'Sì, ci sarò' }).check();
+    await page.getByRole('checkbox', { name: /Vorrei segnalare/ }).check();
+    await page.getByRole('textbox', { name: 'Quali allergie o intolleranze?' }).fill('Non deve essere inviato');
+    await page.getByRole('radio', { name: 'Non potrò esserci' }).check();
+    verify(await page.locator('#allergies-section').isHidden(), 'Declining attendance still shows allergy fields');
+    await page.getByRole('button', { name: 'Invia la mia risposta' }).click();
+    await page.locator('#form-message').waitFor({ state: 'visible' });
+    verify(declinedSubmission === undefined, 'Whitespace-only name sent a request');
+    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill(' Verifica ');
+    await page.getByRole('button', { name: 'Invia la mia risposta' }).click();
+    await page.getByRole('heading', { name: 'Risposta ricevuta' }).waitFor();
+    verify(declinedSubmission.attending === false && declinedSubmission.allergies === '' && declinedSubmission.allergyConsent === false, 'Declining attendance sent allergy details');
+    verify(declinedSubmission.firstName === 'Verifica', 'Name was not trimmed');
+    await page.unroute('**/functions/v1/rsvp');
+    await page.getByRole('button', { name: 'Torna all’invito' }).click();
+
+    await page.route('**/assets/images/ocean-scene.svg', (route) => route.abort());
     await page.reload();
     await page.locator('body.ready.scene-unavailable').waitFor();
     await page.getByRole('button', { name: 'Apri l’invito' }).click();
     await page.locator('body[data-state="opened"]').waitFor();
-    verify(await page.getByRole('button', { name: 'Conferma presenza', exact: true }).isVisible(), 'Missing background blocked the invitation');
-    await page.unroute('**/assets/images/invitation-scene.jpg');
+    await page.getByRole('button', { name: 'Conferma presenza', exact: true }).waitFor({ state: 'visible' });
+    await page.unroute('**/assets/images/ocean-scene.svg');
     verify(scriptErrors.length === 0, 'JavaScript errors: ' + scriptErrors.join('; '));
     verify(missingAssets.length === 0, 'Missing assets: ' + missingAssets.join('; '));
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.reload();
-    console.log('Countdown, reduced motion, missing-image fallback and simulated RSVP retry: OK');
+    return { verifiedLayouts, scriptErrors, missingAssets, rsvp: 'Required fields, consent, loading, success, decline and retry verified with simulated responses', countdown: 'OK', reducedMotion: 'OK', missingImageFallback: 'OK' };
+
+    async function envelopeIsInsideViewport(browserPage) {
+        return browserPage.locator('#open-invitation').evaluate((element) => {
+            const rectangle = element.getBoundingClientRect();
+            return rectangle.top >= 0 && rectangle.bottom <= innerHeight && rectangle.left >= 0 && rectangle.right <= innerWidth;
+        });
+    }
 }
