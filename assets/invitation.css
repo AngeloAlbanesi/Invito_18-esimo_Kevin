@@ -26,10 +26,8 @@ a { color: inherit; }
 [hidden] { display: none !important; }
 :focus-visible { outline: 3px solid #aa3328; outline-offset: 5px; }
 .music-toggle {
-    position: fixed;
-    z-index: 10;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: max(16px, env(safe-area-inset-bottom));
+    display: block;
+    margin: 0 0 12px auto;
     min-height: 44px;
     padding: 10px 16px;
     border: 1px solid var(--line);
