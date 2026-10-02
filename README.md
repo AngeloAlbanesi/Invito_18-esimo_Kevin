@@ -6,7 +6,8 @@ Invito One Piece con busta di pergamena animata, sigillo della ciurma di
 Cappello di Paglia, mare e nave illustrati, location, countdown e registro RSVP
 collegato a Supabase. Palette carta, rosso e mare, con grafica SVG locale.
 La festa è il **28 novembre 2026 alle 20:00**, presso La Fornace, SP40,
-64042 Colledara TE. Nessun sito pubblicato.
+64042 Colledara TE. Il sito è online su
+[GitHub Pages](https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/).
 
 ## Anteprima locale
 
@@ -152,10 +153,11 @@ database; non dipende da CORS o dal solo honeypot. È una protezione proporziona
 alla raccolta per una festa, non una difesa completa contro attacchi distribuiti:
 un abuso può occupare la finestra e causare HTTP 429 anche a invitati legittimi.
 
-Per l'anteprima CORS consente tutte le origini. Quando esiste l'indirizzo del sito,
-impostare il segreto `RSVP_ALLOWED_ORIGIN` all'origine esatta (protocollo e host,
-senza percorso) con `supabase secrets set`; CORS limita i browser, non autentica
-gli invitati. Attualmente non servono nuove credenziali per il backend.
+Il backend pubblico usa `RSVP_ALLOWED_ORIGIN=https://angeloalbanesi.github.io`,
+configurato su Supabase il 2 ottobre 2026. L'origine comprende protocollo e host,
+senza il percorso del repository. Le altre origini ricevono HTTP 403: l'anteprima
+locale resta utilizzabile, ma non invia conferme al backend pubblico.
+CORS limita i browser, non autentica gli invitati.
 
 ## Verifiche e aggiornamenti
 
@@ -224,7 +226,7 @@ inattività. Prima di distribuire l'invito e prima della festa, controllare che 
 progetto sia attivo; se sospeso, ripristinarlo dal pannello e provare il form.
 Non generare traffico artificiale per evitarne la sospensione.
 
-## Pubblicazione futura su GitHub Pages
+## Pubblicazione su GitHub Pages
 
 ### Anteprima dei link su WhatsApp
 
@@ -234,12 +236,11 @@ URL della pagina e immagine JPEG da 1200 × 630 px. Sono presenti anche i metada
 Twitter Card. La card riprende pergamena, rosso e ciurma dell’invito e include
 nome, età, data, ora e location.
 
-Gli URL assoluti sono predisposti per
-[l’indirizzo Pages previsto](https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/),
+Gli URL assoluti corrispondono al
+[sito pubblico](https://angeloalbanesi.github.io/Invito_18-esimo_Kevin/),
 ricavato dal repository `AngeloAlbanesi/Invito_18-esimo_Kevin`.
-Se alla pubblicazione viene scelto un dominio o percorso diverso, aggiornare
+Se viene scelto un dominio o percorso diverso, aggiornare
 `canonical`, `og:url`, `og:image` e `twitter:image` in `index.html`.
-Questa modifica prepara l’anteprima; non pubblica il sito.
 
 L’immagine è `assets/images/og-invito-v1.jpg`; il sorgente modificabile è
 `assets/social-preview.html`. Quando cambiano i dati dell’evento, aggiornare
@@ -258,29 +259,33 @@ npx --yes --package @playwright/cli playwright-cli -s=kevin-og run-code 'async p
 }'
 ```
 
-Dopo la pubblicazione, verificare che pagina e JPEG siano pubblicamente
-accessibili via HTTPS, quindi incollare il link del sito in WhatsApp e controllare
-l’anteprima prima dell’invio. Il rendering effettivo dipende dall’app e dalle
-impostazioni del dispositivo e non è stato verificato dalla sola anteprima locale.
+Pagina e JPEG sono stati verificati pubblicamente via HTTPS il 2 ottobre 2026.
+Incollare il link del sito in WhatsApp e controllare l’anteprima prima dell’invio:
+il rendering effettivo dipende dall’app e dalle impostazioni del dispositivo e
+resta da verificare direttamente in WhatsApp.
 
 ### Attivazione di Pages
 
-La pubblicazione richiede un incarico successivo. Il frontend è statico e usa
-percorsi relativi, compatibili con l’indirizzo di progetto
-`https://<utente>.github.io/<repository>/`. `serve.py` serve soltanto per
-l’anteprima: il backend pubblico resta la funzione Supabase.
+GitHub Pages è attivo dal 2 ottobre 2026, con HTTPS obbligatorio e sorgente
+**Deploy from a branch → main → / (root)**. `index.html` è il punto d’ingresso
+e `.nojekyll` evita l’elaborazione Jekyll. Il frontend è statico: non servono
+build, dipendenze o workflow personalizzati. `serve.py` serve soltanto per
+l’anteprima; il backend pubblico resta la funzione Supabase.
 
-Quando autorizzata, la pubblicazione può usare GitHub Pages in un repository
-pubblico con il piano gratuito: caricare i file pubblici e i sorgenti necessari,
-poi scegliere in **Settings → Pages → Deploy from a branch** il ramo desiderato
-e la cartella **/ (root)**. `index.html` è il punto d’ingresso e `.nojekyll`
-evita l’elaborazione Jekyll. Non caricare `.env`, chiavi amministrative,
-password o esportazioni delle conferme. Non sono necessari servizi a pagamento.
+Ogni push su `main` aggiorna automaticamente il sito. Lo stato della pubblicazione
+è disponibile nelle [Actions del repository](https://github.com/AngeloAlbanesi/Invito_18-esimo_Kevin/actions)
+e la sorgente nelle [impostazioni Pages](https://github.com/AngeloAlbanesi/Invito_18-esimo_Kevin/settings/pages).
+`.env` è escluso da Git e il suo URL pubblico restituisce HTTP 404. Non caricare
+chiavi amministrative, password o esportazioni delle conferme.
 
-Impostare poi `RSVP_ALLOWED_ORIGIN` all’origine finale, controllare che Supabase
-sia attivo e provare dal sito pubblico un invio fittizio da eliminare.
-Verificare su Safari/iPhone, controllare la location e decidere chi consulterà
-le allergie e quando cancellare le risposte dopo la festa.
+La pubblicazione iniziale è riuscita. Pagina e tutti gli asset pubblici coincidono
+con i file locali; Chrome a 390 e 1440 px non presenta overflow, errori JavaScript
+o asset mancanti. Apertura, Location, focus ed Escape del dialog sono verificati.
+Il preflight RSVP restituisce HTTP 204 per il sito e HTTP 403 per un'altra origine.
+Un invio fittizio dal form pubblico ha restituito HTTP 200 con `{"ok":true}`;
+il record è stato verificato nel database, eliminato e la sua assenza confermata.
+Sono passati anche i test Node del backend e Python del server locale.
+Safari/iPhone e la card direttamente in WhatsApp restano da verificare.
 
 Riferimento: [creare un sito GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site).
 
