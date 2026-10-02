@@ -257,6 +257,7 @@ body[data-state='opening'] .invitation { animation: reveal 1s 1.2s both; }
 .action:hover { transform: translateY(-2px); background: #243c3d10; }
 .action:last-child:hover { background: #8d291f; }
 .action:active { transform: translateY(1px); }
+.action:disabled { opacity: .6; transform: none; }
 .action-icon { display: flex; flex-shrink: 0; }
 .action svg { width: 20px; height: 20px; }
 .countdown { margin: 28px auto 0; padding-top: 20px; border-top: 1px dashed var(--line); }

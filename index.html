@@ -88,6 +88,7 @@
             <p class="destination">LA NOSTRA DESTINAZIONE</p>
             <p class="venue" id="venue-name">La Fornace</p>
             <p class="address" id="venue-address">SP40, 64042 Colledara TE</p>
+            <p class="invitation-copy" id="rsvp-deadline" role="status">Conferma la tua presenza entro il <strong><time datetime="2026-11-15">15 novembre 2026</time></strong> (incluso).</p>
             <nav class="actions" aria-label="Azioni dell’invito">
                 <a class="action" id="location-link" href="https://www.google.com/maps/search/?api=1&amp;query=La%20Fornace%2C%20SP40%2C%2064042%20Colledara%20TE" target="_blank" rel="noopener noreferrer">
                     <span class="action-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6Z"/><path d="M12 1v2m0 18v2M1 12h2m18 0h2"/></svg></span>
@@ -167,7 +168,7 @@
             venueName: 'La Fornace',
             venueAddress: 'SP40, 64042 Colledara TE',
             mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('La Fornace, SP40, 64042 Colledara TE'),
-            rsvpDeadline: null,
+            rsvpDeadline: '2026-11-16T00:00:00+01:00',
             rsvp: {
                 mode: 'backend',
                 endpoint: 'https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/rsvp',
@@ -208,6 +209,7 @@
         let pendingSubmission = null;
         let sending = false;
         let saved = false;
+        let rsvpClosedByServer = false;
 
         const dateLabel = new Intl.DateTimeFormat('it-IT', {
             day: 'numeric', month: 'long', year: 'numeric', timeZone: EVENT_CONFIG.timeZone,
@@ -275,6 +277,7 @@
         });
 
         function updateCountdown() {
+            updateRsvpAvailability();
             clearInterval(countdownTimer);
             countdownTimer = null;
             const note = document.getElementById('countdown-note');
@@ -303,9 +306,27 @@
         });
 
         const backendReady = EVENT_CONFIG.rsvp.mode === 'backend' && Boolean(EVENT_CONFIG.rsvp.endpoint);
-        submitButton.disabled = !backendReady;
+        submitButton.disabled = !backendReady || updateRsvpAvailability();
         document.getElementById('preview-note').hidden = backendReady;
+        function updateRsvpAvailability() {
+            const closed = rsvpClosedByServer || Date.now() >= Date.parse(EVENT_CONFIG.rsvpDeadline);
+            if (!closed) return false;
+            const closedMessage = 'Le iscrizioni sono chiuse. Il termine era il 15 novembre 2026.';
+            const deadlineNote = document.getElementById('rsvp-deadline');
+            if (deadlineNote.textContent !== closedMessage) deadlineNote.textContent = closedMessage;
+            rsvpButton.disabled = true;
+            rsvpButton.querySelector('span:last-child').textContent = 'Iscrizioni chiuse';
+            formFields.disabled = true;
+            submitButton.disabled = true;
+            if (!sending) submitButton.textContent = 'Iscrizioni chiuse';
+            if (!saved) {
+                if (formMessage.textContent !== closedMessage) formMessage.textContent = closedMessage;
+                formMessage.hidden = false;
+            }
+            return true;
+        }
         rsvpButton.addEventListener('click', () => {
+            if (updateRsvpAvailability()) return;
             if (EVENT_CONFIG.rsvp.mode === 'google-form' && EVENT_CONFIG.rsvp.googleFormUrl) {
                 window.open(EVENT_CONFIG.rsvp.googleFormUrl, '_blank', 'noopener,noreferrer');
                 return;
@@ -362,6 +383,7 @@
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (updateRsvpAvailability()) return;
             if (sending || saved || !backendReady) return;
             if (!pendingSubmission) {
                 if (!form.reportValidity()) return;
@@ -406,6 +428,11 @@
                 });
                 const result = await response.json();
                 if (!response.ok || result.ok !== true) {
+                    if (response.status === 410 && result.code === 'rsvp_closed') {
+                        rsvpClosedByServer = true;
+                        updateRsvpAvailability();
+                        return;
+                    }
                     if ([400, 413, 415, 429].includes(response.status)) {
                         pendingSubmission = null;
                         formFields.disabled = false;
@@ -434,6 +461,7 @@
                 submitButton.removeAttribute('aria-busy');
                 submitButton.disabled = saved;
                 submitButton.textContent = pendingSubmission ? 'Riprova invio' : 'Invia la mia risposta';
+                updateRsvpAvailability();
             }
         });
     </script>

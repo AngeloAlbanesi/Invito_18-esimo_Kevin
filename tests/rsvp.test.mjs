@@ -8,6 +8,9 @@ const environment = new Map([
 ]);
 globalThis.Deno = { env: { get: (name) => environment.get(name) } };
 const originalFetch = globalThis.fetch;
+const originalDateNow = Date.now;
+const closesAt = Date.parse('2026-11-16T00:00:00+01:00');
+Date.now = () => closesAt - 1;
 let databaseCalls = 0;
 let savedPayload;
 globalThis.fetch = async (_url, options) => {
@@ -49,6 +52,16 @@ try {
     assert.deepEqual(await (await submit(validPayload)).json(), { ok: true });
     assert.equal(savedPayload.first_name, 'Invitato');
     assert.equal(savedPayload.allergies, null);
+    for (const timestamp of [closesAt, closesAt + 1, Date.parse('2027-01-01T00:00:00Z')]) {
+        Date.now = () => timestamp;
+        const callsBeforeClosure = databaseCalls;
+        const response = await submit(validPayload);
+        assert.equal(response.status, 410);
+        assert.equal((await response.json()).code, 'rsvp_closed');
+        assert.equal(databaseCalls, callsBeforeClosure);
+        assert.equal((await handleRequest(new Request('https://example.test/rsvp', { method: 'OPTIONS' }))).status, 204);
+    }
+    Date.now = () => closesAt - 1;
     assert.equal((await submit({ ...validPayload, allergies: 'example', allergyConsent: true })).status, 200);
     assert.equal(savedPayload.allergy_consent, true);
     assert.equal((await submit({ ...validPayload, attending: false, allergies: 'example' })).status, 200);
@@ -64,8 +77,9 @@ try {
     assert.equal((await submit(validPayload)).status, 503);
     environment.delete('SUPABASE_SECRET_KEYS');
     assert.equal((await submit(validPayload)).status, 503);
-    console.log('RSVP: validazione, consenso, CORS, limiti ed errori verificati.');
+    console.log('RSVP: scadenza inclusiva, blocco server, validazione, consenso, CORS, limiti ed errori verificati.');
 } finally {
     globalThis.fetch = originalFetch;
+    Date.now = originalDateNow;
     delete globalThis.Deno;
 }

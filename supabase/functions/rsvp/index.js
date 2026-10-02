@@ -1,3 +1,5 @@
+const RSVP_CLOSES_AT = Date.parse('2026-11-16T00:00:00+01:00');
+
 export async function handleRequest(request) {
     const allowedOrigin = Deno.env.get('RSVP_ALLOWED_ORIGIN') || '*';
     const headers = {
@@ -63,6 +65,12 @@ export async function handleRequest(request) {
     const allergies = payload.attending ? (payload.allergies?.trim() || null) : null;
     if (allergies && (allergies.length > 1000 || payload.allergyConsent !== true)) {
         return respond(400, { error: 'Controlla le allergie e il consenso alla loro raccolta.' });
+    }
+    if (Date.now() >= RSVP_CLOSES_AT) {
+        return respond(410, {
+            code: 'rsvp_closed',
+            error: 'Le iscrizioni sono chiuse. Il termine era il 15 novembre 2026.',
+        });
     }
 
     try {

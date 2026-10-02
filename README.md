@@ -37,7 +37,19 @@ Modificare `EVENT_CONFIG` nello script di `index.html` per cambiare i dati.
 invernale corretto per Roma. Per un orario non ancora stabilito usare `null` per
 entrambi: il sito mostra “Orario da definire” e non avvia il countdown.
 Il contatore usa l’orologio del dispositivo, si ferma quando la scheda è nascosta
-e arriva a zero all’inizio della festa. Non è impostata una scadenza RSVP.
+e arriva a zero all’inizio della festa. Le iscrizioni sono aperte fino al
+**15 novembre 2026 incluso**, secondo il fuso `Europe/Rome`. `rsvpDeadline`
+indica il primo istante di chiusura: `2026-11-16T00:00:00+01:00`.
+Da quel momento la lettera mostra “Iscrizioni chiuse” e disabilita il modulo,
+anche se la pagina è rimasta aperta. La funzione Supabase applica lo stesso
+termine usando l’orologio del server e rifiuta gli invii con HTTP 410 e codice
+`rsvp_closed`, anche quando l’orologio del dispositivo è sbagliato. Per cambiare
+scadenza aggiornare anche `RSVP_CLOSES_AT` in `supabase/functions/rsvp/index.js`
+e ridistribuire la funzione.
+
+Il 2 ottobre 2026 il controllo della scadenza è stato distribuito su Supabase
+e confermato nel sorgente remoto. Sono passati i test Node sui confini temporali
+e i test Chrome a 320 e 1440 px con invii simulati, senza errori JavaScript.
 
 Il pulsante Location apre Google Maps cercando il nome e l’indirizzo della
 location; non è stato confermato un identificativo specifico della struttura.
@@ -179,7 +191,13 @@ già avviata e Chrome disponibile:
 mkdir -p output/playwright
 npx --yes --package @playwright/cli playwright-cli -s=kevin open http://127.0.0.1:8000 --browser chrome
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/invitation.browser.js
+npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/rsvp-deadline.browser.js
 ```
+
+Il controllo della scadenza simula l’ultimo millisecondo del 15 novembre e la
+mezzanotte del 16: verifica l’invio prima del termine, la chiusura di una pagina
+già aperta, il blocco dei retry e la risposta HTTP 410 del server con un orologio
+locale in ritardo. Gli invii nel browser sono intercettati e non salvano dati reali.
 
 ### Verifiche del redesign One Piece — 2 ottobre 2026
 
