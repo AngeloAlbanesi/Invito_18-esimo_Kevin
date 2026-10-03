@@ -14,3 +14,10 @@ __pycache__/
 .playwright-cli/
 output/
 .kilo/
+private/
+inviti*.csv
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

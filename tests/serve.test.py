@@ -15,6 +15,9 @@ thread.start()
 try:
     for request_path, expected_status in [
         ('/', 200),
+        ('/admin.html', 200),
+        ('/deployment.json', 403),
+        ('/output/private/activation.txt', 403),
         ('/index.html', 200),
         ('/assets/images/favicon.svg', 200),
         ('/assets/images/og-invito-v1.jpg', 200),
@@ -29,6 +32,10 @@ try:
         connection.request('GET', request_path)
         response = connection.getresponse()
         assert response.status == expected_status, (request_path, response.status)
+        assert response.getheader('X-Frame-Options') == 'DENY'
+        assert response.getheader('X-Content-Type-Options') == 'nosniff'
+        assert response.getheader('Referrer-Policy') == 'no-referrer'
+        assert "unsafe-inline" not in response.getheader('Content-Security-Policy')
         response.read()
         connection.close()
     print('Anteprima: asset disponibili, credenziali e percorsi privati bloccati.')

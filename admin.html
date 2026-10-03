@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Inviti personali · Kevin</title>
+    <link rel="stylesheet" href="./assets/admin.css">
+    <script src="./assets/site-config.js" defer></script>
+    <script src="./assets/admin.js" defer></script>
+</head>
+<body>
+    <main>
+        <h1>La tua ciurma</h1>
+        <p>Crea un link personale per ogni invitato, poi invialo tu. Ogni link permette una sola conferma: chi lo riceve inoltrato può usarlo.</p>
+        <p id="admin-message" role="status" aria-live="polite"></p>
+        <form id="login-form">
+            <h2>Accesso riservato a Kevin</h2>
+            <label>Email<input name="email" type="email" autocomplete="username" required></label>
+            <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+            <button type="submit">Accedi</button>
+        </form>
+        <form id="activate-form" hidden>
+            <h2>Attiva il tuo accesso</h2>
+            <label>Scegli una password<input name="password" type="password" autocomplete="new-password" minlength="12" required></label>
+            <button type="submit">Salva password</button>
+        </form>
+        <section id="private-panel" hidden>
+            <button id="logout" type="button">Esci</button>
+            <form id="create-invitation">
+                <h2>Nuovo invito personale</h2>
+                <label>Nome<input name="firstName" maxlength="80" required></label>
+                <label>Cognome<input name="lastName" maxlength="80" required></label>
+                <button type="submit">Crea link</button>
+            </form>
+            <section id="new-link" hidden>
+                <h2>Link da inviare</h2>
+                <p>Copialo prima di chiudere la pagina. Il link non viene conservato nel browser. Se lo perdi, sostituiscilo dall’elenco.</p>
+                <label>Link personale<input id="invitation-link" type="text" readonly></label>
+                <button id="copy-link" type="button">Copia link</button>
+            </section>
+            <h2>Inviti creati</h2>
+            <p>Sostituire un link invalida quello precedente e riattiva un invito revocato. Una conferma già ricevuta resta definitiva.</p>
+            <button id="refresh-invitations" type="button">Aggiorna elenco</button>
+            <ul id="invitation-list"></ul>
+            <button id="more-invitations" type="button" hidden>Carica altri</button>
+        </section>
+    </main>
+</body>
+</html>

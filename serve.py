@@ -8,6 +8,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 class InvitationHandler(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        for line in (PROJECT_ROOT / '_headers').read_text().splitlines():
+            if line.startswith('  ') and ':' in line:
+                name, value = line.strip().split(':', 1)
+                self.send_header(name, value.strip())
+        super().end_headers()
+
     def __init__(self, *arguments, **options):
         super().__init__(*arguments, directory=str(PROJECT_ROOT), **options)
 
@@ -19,7 +26,7 @@ class InvitationHandler(SimpleHTTPRequestHandler):
         except ValueError:
             self.send_error(403)
             return None
-        allowed_path = request_path == '/' or relative_path == Path('index.html')
+        allowed_path = request_path == '/' or relative_path in (Path('index.html'), Path('admin.html'))
         allowed_path = allowed_path or relative_path.parts[:1] == ('assets',)
         hidden_path = any(part.startswith('.') for part in relative_path.parts)
         if not allowed_path or hidden_path or (requested_file.is_dir() and request_path != '/'):

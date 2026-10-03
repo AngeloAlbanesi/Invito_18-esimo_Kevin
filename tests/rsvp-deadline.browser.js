@@ -7,6 +7,9 @@ async (page) => {
     let submissions = 0;
     let serverClosed = false;
     await page.unrouteAll();
+    await page.route('**/assets/site-config.js', route => route.fulfill({contentType: 'text/javascript', body: 'const PUBLIC_SITE_CONFIG = Object.freeze({turnstileSiteKey:"simulated-site",rsvpEndpoint:"https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/rsvp",supabasePublishableKey:"sb_publishable_fixture"});'}));
+    await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js**', route => route.fulfill({contentType: 'text/javascript', body: 'let sequence=0; let callbacks; window.turnstile={remove(){},render(selector,options){callbacks=options; return "fixture";},execute(){callbacks.callback("simulated-challenge-"+(++sequence));}};'}));
+
     page.on('pageerror', (error) => scriptErrors.push(error.message));
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.clock.setFixedTime(closesAt - 1);
@@ -22,7 +25,7 @@ async (page) => {
 
     for (const dimensions of [{ width: 320, height: 568 }, { width: 1440, height: 900 }]) {
         await page.setViewportSize(dimensions);
-        await page.goto('http://127.0.0.1:8000/');
+        await page.goto('http://127.0.0.1:8000/?security-test=rsvp-deadline.browser&width=' + dimensions.width + '#invito=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
         await page.locator('body.ready').waitFor();
         await page.getByRole('button', { name: 'Apri l’invito' }).click();
         await page.locator('body[data-state="opened"]').waitFor();
@@ -34,8 +37,6 @@ async (page) => {
     }
 
     await page.locator('#rsvp-open').click();
-    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('Verifica');
-    await page.getByRole('textbox', { name: 'Cognome', exact: true }).fill('Scadenza');
     await page.getByRole('radio', { name: 'Sì, ci sarò' }).check();
     await page.locator('#rsvp-submit').click();
     await page.getByRole('heading', { name: 'Risposta ricevuta' }).waitFor();
@@ -48,7 +49,7 @@ async (page) => {
     await page.clock.setFixedTime(closesAt);
     await page.waitForFunction(() => document.getElementById('rsvp-submit').disabled);
     verify(await page.locator('#rsvp-open').isDisabled(), 'Open page did not close at midnight');
-    verify(await page.locator('#first-name').isDisabled(), 'Open form fields remain enabled');
+    verify(await page.locator('#rsvp-fields').evaluate(element => element.disabled), 'Open form fields remain enabled');
     verify((await page.locator('#form-message').textContent()).includes('iscrizioni sono chiuse'), 'Open form has no closure message');
     await page.evaluate(() => document.getElementById('rsvp-form').dispatchEvent(new Event('submit', { cancelable: true })));
     verify(submissions === 1, 'Expired form sent a request');
@@ -62,14 +63,12 @@ async (page) => {
     await page.getByRole('button', { name: 'Apri l’invito' }).click();
     await page.locator('body[data-state="opened"]').waitFor();
     await page.locator('#rsvp-open').click();
-    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('Verifica');
-    await page.getByRole('textbox', { name: 'Cognome', exact: true }).fill('Scadenza');
     await page.getByRole('radio', { name: 'Sì, ci sarò' }).check();
     await page.locator('#rsvp-submit').click();
     await page.waitForFunction(() => document.getElementById('rsvp-submit').textContent === 'Iscrizioni chiuse');
     verify(submissions === 2, 'Server closure was not received');
     verify(await page.locator('#rsvp-open').isDisabled(), 'Server closure did not disable registration');
-    verify(await page.locator('#first-name').isDisabled(), 'Server closure did not disable fields');
+    verify(await page.locator('#rsvp-fields').evaluate(element => element.disabled), 'Server closure did not disable fields');
     verify(await page.locator('#rsvp-success').isHidden(), 'Server closure showed success');
     await page.evaluate(() => document.getElementById('rsvp-form').dispatchEvent(new Event('submit', { cancelable: true })));
     verify(submissions === 2, 'Server closure still allows retries');

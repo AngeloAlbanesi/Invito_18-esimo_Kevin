@@ -1,0 +1,1 @@
+const PUBLIC_SITE_CONFIG = Object.freeze({"siteUrl": "https://invito-kevin-18.pages.dev", "turnstileSiteKey": "0x4AAAAAAFMymZuQSQxsQuMy", "supabasePublishableKey": "sb_publishable_dv5YPsXBpSfaWCb0RSDghQ_glB0OFQK", "rsvpEndpoint": "https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/rsvp"});

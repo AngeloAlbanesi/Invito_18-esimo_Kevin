@@ -6,6 +6,10 @@ async (page) => {
     const missingAssets = [];
     const verifiedLayouts = [];
     await page.unrouteAll();
+    await page.route('**/assets/site-config.js', route => route.fulfill({contentType: 'text/javascript', body: 'const PUBLIC_SITE_CONFIG = Object.freeze({turnstileSiteKey:"simulated-site",rsvpEndpoint:"https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/rsvp",supabasePublishableKey:"sb_publishable_fixture"});'}));
+    await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js**', route => route.fulfill({contentType: 'text/javascript', body: 'let sequence=0; let callbacks; window.turnstile={remove(){},render(selector,options){callbacks=options; return "fixture";},execute(){callbacks.callback("simulated-challenge-"+(++sequence));}};'}));
+
+    await page.addInitScript(() => { window.cspViolations = []; document.addEventListener('securitypolicyviolation', event => window.cspViolations.push(event.violatedDirective)); });
     page.on('pageerror', (error) => scriptErrors.push(error.message));
     page.on('response', (response) => {
         if (response.url().includes('/assets/') && response.status() >= 400) missingAssets.push(response.url());
@@ -22,7 +26,7 @@ async (page) => {
         { width: 1440, height: 900 },
     ]) {
         await page.setViewportSize(dimensions);
-        await page.goto('http://127.0.0.1:8000/');
+        await page.goto('http://127.0.0.1:8000/?security-test=invitation.browser&width=' + dimensions.width + '#invito=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
         await page.locator('body.ready').waitFor();
         await page.waitForFunction(() => getComputedStyle(document.querySelector('.envelope')).opacity === '1'
             && getComputedStyle(document.querySelector('.intro')).opacity === '1');
@@ -45,7 +49,7 @@ async (page) => {
         const mapDestination = await page.getByRole('link', { name: 'Location' }).evaluate((element) => new URL(element.href).searchParams.get('query'));
         verify(mapDestination === 'La Fornace, SP40, 64042 Colledara TE', 'Wrong map destination');
         await page.getByRole('button', { name: 'Conferma presenza', exact: true }).click();
-        verify(await page.evaluate(() => document.activeElement.id === 'first-name'), 'Form did not focus the name');
+        verify(await page.evaluate(() => document.activeElement.name === 'attending'), 'Form did not focus attendance');
         verify(await page.evaluate(() => document.getElementById('rsvp-dialog').scrollWidth <= document.getElementById('rsvp-dialog').clientWidth), 'Dialog overflows horizontally');
         await page.keyboard.press('Shift+Tab');
         await page.keyboard.press('Shift+Tab');
@@ -82,8 +86,6 @@ async (page) => {
     await page.locator('body[data-state="opened"]').waitFor();
     verify(await page.locator('.paper-fragment').count() === 0, 'Reduced motion created particles');
     await page.getByRole('button', { name: 'Conferma presenza', exact: true }).click();
-    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('Verifica');
-    await page.getByRole('textbox', { name: 'Cognome', exact: true }).fill('Simulata');
     await page.getByRole('radio', { name: 'Sì, ci sarò' }).check();
     await page.getByRole('checkbox', { name: /Vorrei segnalare/ }).check();
     await page.getByRole('textbox', { name: 'Quali allergie o intolleranze?' }).fill('TEST: dato fittizio');
@@ -102,7 +104,7 @@ async (page) => {
         await page.waitForTimeout(200);
         const firstAttempt = submissions.length === 1;
         await route.fulfill({
-            status: firstAttempt ? 503 : 200,
+            status: firstAttempt ? 503 : submissions.length === 2 ? 201 : 200,
             contentType: 'application/json',
             headers: { 'Access-Control-Allow-Origin': '*' },
             body: JSON.stringify(firstAttempt ? { error: 'Errore simulato: riprova.' } : { ok: true }),
@@ -114,12 +116,17 @@ async (page) => {
     await page.getByRole('button', { name: 'Riprova invio' }).waitFor();
     verify(submissions.length === 1, 'Repeated submit made duplicate requests');
     verify(await page.locator('#rsvp-success').isHidden(), 'Failure showed a fake success');
-    verify(await page.getByRole('textbox', { name: 'Nome', exact: true }).inputValue() === 'Verifica', 'Failure cleared form data');
-    verify(await page.getByRole('textbox', { name: 'Nome', exact: true }).isDisabled(), 'Uncertain request can be edited before retry');
+    await page.getByRole('button', { name: 'Riprova invio' }).click();
+    await page.getByRole('button', { name: 'Riprova invio' }).waitFor();
+    verify(await page.locator('#rsvp-success').isHidden(), 'HTTP 201 showed success');
     await page.getByRole('button', { name: 'Riprova invio' }).click();
     await page.getByRole('heading', { name: 'Risposta ricevuta' }).waitFor();
-    verify(submissions.length === 2 && submissions[0].requestId === submissions[1].requestId, 'Retry changed the request ID');
-    verify(JSON.stringify(submissions[0]) === JSON.stringify(submissions[1]), 'Retry changed the submitted data');
+    verify(submissions.length === 3 && submissions[0].requestId === submissions[1].requestId, 'Retry changed the request ID');
+    const {turnstileToken: firstChallenge, ...firstPayload} = submissions[0];
+    const {turnstileToken: secondChallenge, ...secondPayload} = submissions[1];
+    verify(firstChallenge !== secondChallenge, 'Retry reused the challenge');
+    verify(JSON.stringify(firstPayload) === JSON.stringify(secondPayload), 'Retry changed RSVP data');
+    verify(await page.locator('#allergy-text').isDisabled(), 'Uncertain request can be edited');
     verify(await page.locator('#rsvp-submit').getAttribute('aria-busy') === null, 'Sending state did not finish');
     await page.screenshot({ path: 'output/playwright/rsvp-success-mobile.png' });
     verify(await page.evaluate(() => localStorage.length === 0 && sessionStorage.length === 0), 'Guest data was saved in browser storage');
@@ -138,31 +145,26 @@ async (page) => {
     });
     await page.getByRole('button', { name: 'Invia la mia risposta' }).click();
     verify(declinedSubmission === undefined, 'Empty form sent a request');
-    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('   ');
-    await page.getByRole('textbox', { name: 'Cognome', exact: true }).fill('Verifica');
     await page.getByRole('radio', { name: 'Sì, ci sarò' }).check();
     await page.getByRole('checkbox', { name: /Vorrei segnalare/ }).check();
     await page.getByRole('textbox', { name: 'Quali allergie o intolleranze?' }).fill('Non deve essere inviato');
     await page.getByRole('radio', { name: 'Non potrò esserci' }).check();
     verify(await page.locator('#allergies-section').isHidden(), 'Declining attendance still shows allergy fields');
     await page.getByRole('button', { name: 'Invia la mia risposta' }).click();
-    await page.locator('#form-message').waitFor({ state: 'visible' });
-    verify(declinedSubmission === undefined, 'Whitespace-only name sent a request');
-    await page.getByRole('textbox', { name: 'Nome', exact: true }).fill(' Verifica ');
-    await page.getByRole('button', { name: 'Invia la mia risposta' }).click();
     await page.getByRole('heading', { name: 'Risposta ricevuta' }).waitFor();
     verify(declinedSubmission.attending === false && declinedSubmission.allergies === '' && declinedSubmission.allergyConsent === false, 'Declining attendance sent allergy details');
-    verify(declinedSubmission.firstName === 'Verifica', 'Name was not trimmed');
+    verify(!('firstName' in declinedSubmission) && !('lastName' in declinedSubmission), 'Browser sent an identity');
     await page.unroute('**/functions/v1/rsvp');
     await page.getByRole('button', { name: 'Torna all’invito' }).click();
 
-    await page.route('**/assets/images/ocean-scene.svg', (route) => route.abort());
+    await page.route('**/assets/images/**', (route) => route.abort());
     await page.reload();
     await page.locator('body.ready.scene-unavailable').waitFor();
     await page.getByRole('button', { name: 'Apri l’invito' }).click();
     await page.locator('body[data-state="opened"]').waitFor();
     await page.getByRole('button', { name: 'Conferma presenza', exact: true }).waitFor({ state: 'visible' });
-    await page.unroute('**/assets/images/ocean-scene.svg');
+    await page.unroute('**/assets/images/**');
+    verify(await page.evaluate(() => window.cspViolations.length === 0), 'CSP violations detected');
     verify(scriptErrors.length === 0, 'JavaScript errors: ' + scriptErrors.join('; '));
     verify(missingAssets.length === 0, 'Missing assets: ' + missingAssets.join('; '));
     await page.emulateMedia({ reducedMotion: 'no-preference' });

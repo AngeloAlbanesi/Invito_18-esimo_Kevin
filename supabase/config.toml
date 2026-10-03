@@ -418,3 +418,8 @@ enabled = true
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/rsvp/index.js"
+
+[functions.invitations]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/invitations/index.js"

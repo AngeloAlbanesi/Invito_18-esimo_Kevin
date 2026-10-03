@@ -1,83 +1,134 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { handleRequest } from '../supabase/functions/rsvp/index.js';
+import { handleInvitationRequest } from '../supabase/functions/invitations/index.js';
 
+const origin = 'https://invito.example';
+const adminUserId = randomUUID();
 const environment = new Map([
-    ['SUPABASE_URL', 'https://example.supabase.co'],
+    ['RSVP_ALLOWED_ORIGIN', origin], ['SUPABASE_URL', 'https://example.supabase.co'],
     ['SUPABASE_SECRET_KEYS', '{"default":"sb_secret_test"}'],
+    ['TURNSTILE_SECRET_KEY', 'test-only'], ['RSVP_ADMIN_USER_ID', adminUserId],
 ]);
 globalThis.Deno = { env: { get: (name) => environment.get(name) } };
 const originalFetch = globalThis.fetch;
 const originalDateNow = Date.now;
 const closesAt = Date.parse('2026-11-16T00:00:00+01:00');
 Date.now = () => closesAt - 1;
-let databaseCalls = 0;
-let savedPayload;
-globalThis.fetch = async (_url, options) => {
-    databaseCalls += 1;
-    savedPayload = JSON.parse(options.body);
-    return new Response(null, { status: 204 });
-};
-
-const validPayload = {
-    requestId: randomUUID(),
-    firstName: ' Invitato ',
-    lastName: ' Test ',
-    attending: true,
-};
-const submit = (payload) => handleRequest(new Request('https://example.test/rsvp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-}));
-
-try {
-    assert.equal((await handleRequest(new Request('https://example.test/rsvp'))).status, 405);
-    assert.equal((await handleRequest(new Request('https://example.test/rsvp', { method: 'OPTIONS' }))).status, 204);
-    for (const invalidPayload of [
-        null,
-        { ...validPayload, firstName: ' ' },
-        { ...validPayload, lastName: 'x'.repeat(81) },
-        { ...validPayload, attending: 'yes' },
-        { ...validPayload, requestId: 'invalid' },
-        { ...validPayload, allergies: [] },
-        { ...validPayload, allergies: 'example', allergyConsent: false },
-        { ...validPayload, allergies: 'x'.repeat(1001), allergyConsent: true },
-        { ...validPayload, website: 'spam' },
-    ]) {
-        assert.equal((await submit(invalidPayload)).status, 400);
+let calls = [];
+let challenge = { success: true, hostname: 'invito.example', action: 'rsvp' };
+let databaseResult = { code: 'ok' };
+let verifiedUser = adminUserId;
+let createdInvitation;
+let unavailableService;
+globalThis.fetch = async (url, options) => {
+    calls.push({ url, options });
+    if (url.includes(unavailableService || 'never-match')) throw new Error('Offline');
+    if (url.includes('siteverify')) return Response.json(challenge);
+    if (url.endsWith('/auth/v1/user')) return Response.json({ id: verifiedUser });
+    if (url.includes('/rsvp_invitations')) {
+        if (options.method === 'POST') createdInvitation = JSON.parse(options.body);
+        return Response.json(options.method ? [{ id: createdInvitation?.id || randomUUID() }] : []);
     }
-    assert.equal((await submit({ ...validPayload, allergies: 'x'.repeat(9000) })).status, 413);
-    assert.equal(databaseCalls, 0);
-    assert.deepEqual(await (await submit(validPayload)).json(), { ok: true });
-    assert.equal(savedPayload.first_name, 'Invitato');
-    assert.equal(savedPayload.allergies, null);
-    for (const timestamp of [closesAt, closesAt + 1, Date.parse('2027-01-01T00:00:00Z')]) {
+    return Response.json(databaseResult);
+};
+const payload = { requestId: randomUUID(), invitationToken: randomBytes(32).toString('base64url'),
+    attending: true, website: '', turnstileToken: 'challenge-test' };
+const request = (body, headers = {}, method = 'POST') => new Request(origin + '/api', {
+    method, headers: { Origin: origin, 'Content-Type': 'application/json', ...headers },
+    ...(method === 'POST' ? { body: JSON.stringify(body) } : {}),
+});
+const submit = (body = payload, headers = {}, method = 'POST') => handleRequest(request(body, headers, method));
+const databaseCalls = () => calls.filter((call) => call.url.includes('/rest/v1/'));
+try {
+    assert.equal((await submit(payload, {}, 'GET')).status, 405);
+    assert.equal((await submit(payload, {}, 'OPTIONS')).status, 204);
+    assert.equal((await submit(payload, { Origin: 'https://evil.example' })).status, 403);
+    assert.equal((await submit(payload, { 'Content-Type': 'text/plain' })).status, 415);
+    for (const allowedOrigin of [undefined, '', '*', origin + '/', 'http://invito.example', origin + '/path']) {
+        if (allowedOrigin === undefined) environment.delete('RSVP_ALLOWED_ORIGIN');
+        else environment.set('RSVP_ALLOWED_ORIGIN', allowedOrigin);
+        const response = await submit();
+        assert.equal(response.status, 503);
+        assert.notEqual(response.headers.get('Access-Control-Allow-Origin'), '*');
+    }
+    environment.set('RSVP_ALLOWED_ORIGIN', origin);
+    for (const invalid of [null, [], { ...payload, requestId: 'invalid' },
+        { ...payload, attending: 'yes' }, { ...payload, firstName: 'Impersonated' },
+        { ...payload, website: 'spam' }, { ...payload, allergies: [] },
+        { ...payload, allergyConsent: 'true' },
+        { ...payload, allergies: 'example', allergyConsent: false },
+        { ...payload, allergies: 'x'.repeat(1001), allergyConsent: true }]) {
+        assert.equal((await submit(invalid)).status, 400);
+    }
+    assert.equal((await submit({ ...payload, invitationToken: undefined })).status, 403);
+    assert.equal((await submit({ ...payload, allergies: 'x'.repeat(9000) })).status, 413);
+    assert.equal(databaseCalls().length, 0);
+    for (const invalidChallenge of [
+        { success: false, 'error-codes': ['timeout-or-duplicate'] },
+        { success: true, hostname: 'evil.example', action: 'rsvp' },
+        { success: true, hostname: 'invito.example', action: 'other' },
+    ]) {
+        challenge = invalidChallenge;
+        assert.equal((await submit()).status, 403);
+        assert.equal(databaseCalls().length, 0);
+    }
+    challenge = { success: false, 'error-codes': ['internal-error'] };
+    assert.equal((await submit()).status, 503);
+    unavailableService = 'siteverify';
+    assert.equal((await submit()).status, 503);
+    assert.equal(databaseCalls().length, 0);
+    unavailableService = undefined;
+    challenge = { success: true, hostname: 'invito.example', action: 'rsvp' };
+    assert.equal((await submit({ ...payload, turnstileToken: '' })).status, 403);
+    assert.deepEqual(await (await submit()).json(), { ok: true });
+    const saved = JSON.parse(databaseCalls().at(-1).options.body);
+    assert.equal(saved.token_hash, createHash('sha256').update(payload.invitationToken).digest('hex'));
+    assert.equal(saved.first_name, undefined);
+    assert.equal(saved.invitationToken, undefined);
+    assert.equal(saved.allergies, null);
+    assert.equal((await submit({ ...payload, attending: false, allergies: 'discard' })).status, 200);
+    assert.equal(JSON.parse(databaseCalls().at(-1).options.body).allergies, null);
+    for (const [code, status] of [['invitation_invalid', 403], ['invitation_used', 409],
+        ['request_conflict', 409], ['rate_limit', 429], ['rsvp_closed', 410], ['unknown', 503]]) {
+        databaseResult = { code, retry_after: 12 };
+        const response = await submit();
+        assert.equal(response.status, status);
+        if (status === 429) assert.equal(response.headers.get('Retry-After'), '12');
+    }
+    for (const timestamp of [closesAt, closesAt + 1]) {
         Date.now = () => timestamp;
-        const callsBeforeClosure = databaseCalls;
-        const response = await submit(validPayload);
-        assert.equal(response.status, 410);
-        assert.equal((await response.json()).code, 'rsvp_closed');
-        assert.equal(databaseCalls, callsBeforeClosure);
-        assert.equal((await handleRequest(new Request('https://example.test/rsvp', { method: 'OPTIONS' }))).status, 204);
+        const previousCalls = calls.length;
+        assert.equal((await submit()).status, 410);
+        assert.equal(calls.length, previousCalls);
     }
     Date.now = () => closesAt - 1;
-    assert.equal((await submit({ ...validPayload, allergies: 'example', allergyConsent: true })).status, 200);
-    assert.equal(savedPayload.allergy_consent, true);
-    assert.equal((await submit({ ...validPayload, attending: false, allergies: 'example' })).status, 200);
-    assert.equal(savedPayload.allergies, null);
-    environment.set('RSVP_ALLOWED_ORIGIN', 'https://invito.example');
-    assert.equal((await submit(validPayload)).status, 403);
-    environment.delete('RSVP_ALLOWED_ORIGIN');
-    globalThis.fetch = async () => Response.json({ message: 'rate_limit' }, { status: 400 });
-    assert.equal((await submit(validPayload)).status, 429);
-    globalThis.fetch = async () => Response.json({ code: '23505' }, { status: 409 });
-    assert.equal((await submit(validPayload)).status, 409);
-    globalThis.fetch = async () => { throw new Error('Offline'); };
-    assert.equal((await submit(validPayload)).status, 503);
-    environment.delete('SUPABASE_SECRET_KEYS');
-    assert.equal((await submit(validPayload)).status, 503);
-    console.log('RSVP: scadenza inclusiva, blocco server, validazione, consenso, CORS, limiti ed errori verificati.');
+    environment.delete('TURNSTILE_SECRET_KEY');
+    assert.equal((await submit()).status, 503);
+    environment.set('TURNSTILE_SECRET_KEY', 'test-only');
+    calls = [];
+    const adminRequest = (body, authorization = 'Bearer test-session') => handleInvitationRequest(
+        request(body, { Authorization: authorization }));
+    assert.equal((await adminRequest({ action: 'list' }, '')).status, 401);
+    assert.equal(databaseCalls().length, 0);
+    verifiedUser = randomUUID();
+    assert.equal((await adminRequest({ action: 'list' })).status, 403);
+    assert.equal(databaseCalls().length, 0);
+    verifiedUser = adminUserId;
+    const result = await adminRequest({ action: 'create', invitationId: randomUUID(),
+        firstName: ' Kevin ', lastName: ' Test ' });
+    assert.equal(result.status, 200);
+    const link = (await result.json()).link;
+    const token = new URL(link).hash.slice('#invito='.length);
+    assert.equal(Buffer.from(token, 'base64url').length, 32);
+    assert.equal(createdInvitation.token_hash, createHash('sha256').update(token).digest('hex'));
+    assert.equal(createdInvitation.first_name, 'Kevin');
+    assert.equal(JSON.stringify(createdInvitation).includes(token), false);
+    assert.equal((await adminRequest({ action: 'list' })).status, 200);
+    assert.equal((await adminRequest({ action: 'rotate', invitationId: randomUUID() })).status, 200);
+    assert.equal((await adminRequest({ action: 'revoke', invitationId: randomUUID() })).status, 200);
+    assert.equal((await adminRequest({ action: 'create', invitationId: randomUUID(), firstName: ' ', lastName: 'Test' })).status, 400);
+    console.log('RSVP e pannello: autorizzazione, challenge, hash, CORS, scadenza, errori e assenza di token nel DB verificati.');
 } finally {
     globalThis.fetch = originalFetch;
     Date.now = originalDateNow;

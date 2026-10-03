@@ -356,6 +356,9 @@ input[type='radio'], input[type='checkbox'] { accent-color: var(--red); width: 1
 .allergy-details { margin-top: 18px; }
 .consent { margin-top: 12px; font-size: 11px; color: var(--muted); }
 .privacy { margin: 22px 0 0; font-size: 11px; line-height: 1.8; color: var(--muted); }
+.personal-invitation { margin: 0 0 22px; font-size: 12px; line-height: 1.8; color: var(--muted); }
+.noscript-note { padding: 20px; text-align: center; }
+#turnstile-widget { margin-top: 16px; max-width: 100%; }
 .send-button {
     display: block;
     width: 100%;
