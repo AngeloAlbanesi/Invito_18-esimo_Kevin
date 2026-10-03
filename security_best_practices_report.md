@@ -189,3 +189,12 @@ Turnstile, RLS, limiti e origine esatta; non ripristinare la RPC legacy.
 - Cloudflare Pages distribuito sul solo pacchetto `output/site`, con configurazione Turnstile di produzione sul hostname previsto. Backend RSVP e pannello distribuiti su Supabase, entrambe le migrazioni applicate.
 - Stato DB finale verificato: **0 inviti, 0 risposte, RPC legacy assente**. L’account Kevin resta predisposto per l’attivazione privata; tutti gli inviti e le risposte di prova sono eliminati.
 - File privati ignorati da Git; scansione dei candidati al commit senza chiavi privilegiate, JWT amministrativi o email privata dell’organizzatore.
+
+### Destinatario visibile nella lettera — 3 ottobre 2026
+
+- Lettera e modulo mostrano nome e cognome ricavati dal token personale, con avviso di chiedere a Kevin il link corretto se il nome non corrisponde. Invio disabilitato fino alla verifica; errore temporaneo recuperabile senza registrare risposte.
+- Lettura `action=identify` limitata al singolo token valido e non revocato: soltanto nome/cognome, CORS invariato, risposta `no-store`, nessun accesso pubblico alla tabella. Turnstile resta obbligatorio per gli invii; la sola lettura non richiede challenge e non consuma tentativi RSVP.
+- Test Node e Chrome: destinatario a 320/1440 px, attesa, errore/retry, revoca, nomi lunghi e caratteri HTML resi come testo; nessun dato nello storage. Regressioni RSVP a sette larghezze e chiusura iscrizioni superate con servizi simulati.
+- Backend online verificato con invito temporaneo: nome corretto, token sconosciuto e revocato HTTP 403, contatore tentativi invariato. Invito di prova rimosso senza conferme.
+- Backend e frontend pubblicati; HTML, JavaScript e CSS online coincidono con il pacchetto testato. CSP e blocco iframe confermati negli header HTTPS.
+- Mostrare il nome permette al destinatario di riconoscere un link inviato per errore; resta una credenziale al portatore, senza verifica indipendente dell’identità di chi apre il link.

@@ -78,6 +78,9 @@
             </div>
             <p class="age-caption">UN NUOVO CAPITOLO</p>
             <h1 class="name" id="event-name" data-event-name tabindex="-1">Kevin Tobia</h1>
+            <p class="recipient" id="invitation-recipient" role="status" aria-live="polite" hidden></p>
+            <p class="recipient-note" id="recipient-note" hidden>Se non è il tuo nome, chiedi a Kevin il link corretto prima di confermare.</p>
+            <button class="send-button" id="retry-invitation" type="button" hidden>Riprova verifica invito</button>
             <p class="invitation-copy">Ufficialmente maggiorenne e legalmente responsabile (o quasi!). Per celebrare la fine della scusa del 'Sono minorenne', ti aspetto alla mia festa dei 18 anni. Non puoi mancare!</p>
             <picture>
                 <source media="(max-width: 600px)" srcset="./assets/images/Crew_upscale.jpeg" width="2732" height="1536">
@@ -127,7 +130,7 @@
         <p class="preview-note" id="preview-note" hidden>Il form è in anteprima: la raccolta delle conferme non è configurata.</p>
         <form id="rsvp-form">
             <fieldset id="rsvp-fields">
-                <p class="personal-invitation">Questa risposta sarà associata al tuo invito personale. Per correggere il nome contatta Kevin.</p>
+                <p class="personal-invitation" id="rsvp-recipient">Questa risposta sarà associata al tuo invito personale. Per correggere il nome contatta Kevin.</p>
                 <fieldset class="attendance">
                     <legend>Sarai presente?</legend>
                     <div class="choices">

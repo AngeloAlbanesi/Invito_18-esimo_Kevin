@@ -1,5 +1,40 @@
 const RSVP_CLOSES_AT = Date.parse('2026-11-16T00:00:00+01:00');
 
+async function hashInvitationToken(invitationToken) {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(invitationToken));
+    return Array.from(new Uint8Array(digest), (byteValue) => byteValue.toString(16).padStart(2, '0')).join('');
+}
+
+async function identifyInvitation(payload, headers) {
+    const reject = (status, code) => Response.json({ code }, { status, headers });
+    if (Object.keys(payload).some((key) => !['action', 'invitationToken'].includes(key))) {
+        return reject(400, 'invalid_input');
+    }
+    if (typeof payload.invitationToken !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(payload.invitationToken)) {
+        return reject(403, 'invitation_invalid');
+    }
+    try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default
+            || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (!supabaseUrl || !secretKey) return reject(503, 'unavailable');
+        const tokenHash = await hashInvitationToken(payload.invitationToken);
+        const databaseHeaders = { apikey: secretKey };
+        if (secretKey.startsWith('eyJ')) databaseHeaders.Authorization = `Bearer ${secretKey}`;
+        const response = await fetch(`${supabaseUrl}/rest/v1/rsvp_invitations`
+            + `?select=first_name,last_name&token_hash=eq.${tokenHash}&revoked_at=is.null&limit=1`, {
+            headers: databaseHeaders, signal: AbortSignal.timeout(5000),
+        });
+        if (!response.ok) return reject(503, 'unavailable');
+        const invitations = await response.json();
+        if (invitations.length !== 1) return reject(403, 'invitation_invalid');
+        return Response.json({ firstName: invitations[0].first_name, lastName: invitations[0].last_name },
+            { status: 200, headers });
+    } catch {
+        return reject(503, 'unavailable');
+    }
+}
+
 export async function handleRequest(request) {
     const configuredOrigin = Deno.env.get('RSVP_ALLOWED_ORIGIN');
     let allowedOrigin;
@@ -57,6 +92,7 @@ export async function handleRequest(request) {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         return respond(400, 'invalid_input', 'Dati non validi.');
     }
+    if (payload.action === 'identify') return identifyInvitation(payload, headers);
     const validRequestId = typeof payload.requestId === 'string'
         && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.requestId);
     if (!validRequestId || typeof payload.attending !== 'boolean'
@@ -111,9 +147,7 @@ export async function handleRequest(request) {
         return respond(503, 'unavailable', 'Verifica temporaneamente non disponibile. Riprova.');
     }
     try {
-        const tokenDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload.invitationToken));
-        const tokenHash = Array.from(new Uint8Array(tokenDigest), (byteValue) =>
-            byteValue.toString(16).padStart(2, '0')).join('');
+        const tokenHash = await hashInvitationToken(payload.invitationToken);
         const databaseHeaders = { 'apikey': secretKey, 'Content-Type': 'application/json' };
         if (secretKey.startsWith('eyJ')) databaseHeaders.Authorization = `Bearer ${secretKey}`;
         const databaseResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/submit_personal_rsvp`, {

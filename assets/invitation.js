@@ -232,13 +232,14 @@ document.addEventListener('visibilitychange', () => {
     if (document.hidden) document.getElementById('paper-fragments').replaceChildren();
 });
 
-const backendReady = EVENT_CONFIG.rsvp.mode === 'backend'
+const backendConfigured = EVENT_CONFIG.rsvp.mode === 'backend'
     && Boolean(EVENT_CONFIG.rsvp.endpoint) && Boolean(PUBLIC_SITE_CONFIG.turnstileSiteKey) && hasInvitation;
+let backendReady = false;
 submitButton.disabled = !backendReady || updateRsvpAvailability();
 formFields.disabled = !backendReady || updateRsvpAvailability();
 document.getElementById('preview-note').hidden = backendReady;
 document.getElementById('preview-note').textContent = hasInvitation
-    ? 'La raccolta delle conferme non è ancora configurata.'
+    ? 'Verifica del destinatario in corso…'
     : 'Per confermare, apri il link personale ricevuto da Kevin. Se non lo hai, chiedilo a lui.';
 function updateRsvpAvailability() {
     const closed = rsvpClosedByServer || Date.now() >= Date.parse(EVENT_CONFIG.rsvpDeadline);
@@ -266,6 +267,53 @@ rsvpButton.addEventListener('click', () => {
     dialog.showModal();
     if (!saved && !pendingSubmission && backendReady) form.elements.attending[0].focus();
 });
+
+async function loadInvitationRecipient() {
+    if (!hasInvitation) return;
+    const recipient = document.getElementById('invitation-recipient');
+    const previewNote = document.getElementById('preview-note');
+    const retryButton = document.getElementById('retry-invitation');
+    recipient.hidden = false;
+    recipient.textContent = 'Verifica dell’invito personale…';
+    retryButton.hidden = true;
+    retryButton.disabled = true;
+    try {
+        const response = await fetch(EVENT_CONFIG.rsvp.endpoint + '?action=identify', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'identify', invitationToken }),
+            signal: AbortSignal.timeout(10000),
+        });
+        if (response.status === 403) {
+            recipient.textContent = 'Questo link personale non è valido. Chiedi a Kevin il link corretto.';
+            previewNote.textContent = recipient.textContent;
+            return;
+        }
+        if (response.status !== 200) throw new Error('Identity unavailable');
+        const invitation = await response.json();
+        if (![invitation.firstName, invitation.lastName].every((name) =>
+            typeof name === 'string' && name.trim().length > 0 && name.length <= 80)) {
+            throw new Error('Invalid identity');
+        }
+        const recipientName = invitation.firstName + ' ' + invitation.lastName;
+        recipient.textContent = 'Per ' + recipientName;
+        document.getElementById('recipient-note').hidden = false;
+        document.getElementById('rsvp-recipient').textContent = 'Rispondi per: ' + recipientName
+            + '. Se non è il tuo nome, chiedi a Kevin il link corretto.';
+        backendReady = backendConfigured;
+        formFields.disabled = !backendReady || updateRsvpAvailability();
+        submitButton.disabled = !backendReady || updateRsvpAvailability();
+        previewNote.hidden = backendReady;
+        previewNote.textContent = 'La raccolta delle conferme non è ancora configurata.';
+    } catch {
+        recipient.textContent = 'Non riesco a verificare il destinatario. Riprova prima di confermare.';
+        previewNote.textContent = recipient.textContent;
+        retryButton.hidden = false;
+    } finally {
+        retryButton.disabled = false;
+    }
+}
+document.getElementById('retry-invitation').addEventListener('click', loadInvitationRecipient);
+loadInvitationRecipient();
 document.getElementById('rsvp-close').addEventListener('click', () => dialog.close());
 document.getElementById('success-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('close', () => rsvpButton.focus({ preventScroll: true }));

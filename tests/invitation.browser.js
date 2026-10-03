@@ -6,6 +6,7 @@ async (page) => {
     const missingAssets = [];
     const verifiedLayouts = [];
     await page.unrouteAll();
+    await page.route('**/functions/v1/rsvp?action=identify', route => route.fulfill({status: 200, contentType: 'application/json', headers: {'Access-Control-Allow-Origin': 'http://127.0.0.1:8000'}, body: JSON.stringify({firstName:'Mario',lastName:'Rossi'})}));
     await page.route('**/assets/site-config.js', route => route.fulfill({contentType: 'text/javascript', body: 'const PUBLIC_SITE_CONFIG = Object.freeze({turnstileSiteKey:"simulated-site",rsvpEndpoint:"https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/rsvp",supabasePublishableKey:"sb_publishable_fixture"});'}));
     await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js**', route => route.fulfill({contentType: 'text/javascript', body: 'let sequence=0; let callbacks; window.turnstile={remove(){},render(selector,options){callbacks=options; return "fixture";},execute(){callbacks.callback("simulated-challenge-"+(++sequence));}};'}));
 
@@ -28,6 +29,7 @@ async (page) => {
         await page.setViewportSize(dimensions);
         await page.goto('http://127.0.0.1:8000/?security-test=invitation.browser&width=' + dimensions.width + '#invito=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
         await page.locator('body.ready').waitFor();
+    await page.waitForFunction(() => backendReady);
         await page.waitForFunction(() => getComputedStyle(document.querySelector('.envelope')).opacity === '1'
             && getComputedStyle(document.querySelector('.intro')).opacity === '1');
         verify(await page.locator('#scenery').evaluate((element) => element.naturalWidth > 0), 'Ocean illustration did not load');
@@ -81,6 +83,7 @@ async (page) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.reload();
     await page.locator('body.ready').waitFor();
+    await page.waitForFunction(() => backendReady);
     await page.getByRole('button', { name: 'Apri l’invito' }).focus();
     await page.keyboard.press('Space');
     await page.locator('body[data-state="opened"]').waitFor();
@@ -135,6 +138,7 @@ async (page) => {
 
     await page.reload();
     await page.locator('body.ready').waitFor();
+    await page.waitForFunction(() => backendReady);
     await page.getByRole('button', { name: 'Apri l’invito' }).click();
     await page.locator('body[data-state="opened"]').waitFor();
     await page.getByRole('button', { name: 'Conferma presenza', exact: true }).click();

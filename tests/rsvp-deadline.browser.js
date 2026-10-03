@@ -7,6 +7,7 @@ async (page) => {
     let submissions = 0;
     let serverClosed = false;
     await page.unrouteAll();
+    await page.route('**/functions/v1/rsvp?action=identify', route => route.fulfill({status: 200, contentType: 'application/json', headers: {'Access-Control-Allow-Origin': 'http://127.0.0.1:8000'}, body: JSON.stringify({firstName:'Mario',lastName:'Rossi'})}));
     await page.route('**/assets/site-config.js', route => route.fulfill({contentType: 'text/javascript', body: 'const PUBLIC_SITE_CONFIG = Object.freeze({turnstileSiteKey:"simulated-site",rsvpEndpoint:"https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/rsvp",supabasePublishableKey:"sb_publishable_fixture"});'}));
     await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js**', route => route.fulfill({contentType: 'text/javascript', body: 'let sequence=0; let callbacks; window.turnstile={remove(){},render(selector,options){callbacks=options; return "fixture";},execute(){callbacks.callback("simulated-challenge-"+(++sequence));}};'}));
 
@@ -27,6 +28,7 @@ async (page) => {
         await page.setViewportSize(dimensions);
         await page.goto('http://127.0.0.1:8000/?security-test=rsvp-deadline.browser&width=' + dimensions.width + '#invito=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
         await page.locator('body.ready').waitFor();
+    await page.waitForFunction(() => backendReady);
         await page.getByRole('button', { name: 'Apri l’invito' }).click();
         await page.locator('body[data-state="opened"]').waitFor();
         verify((await page.locator('#rsvp-deadline').textContent()).includes('15 novembre 2026'), 'Deadline missing from letter');
@@ -43,6 +45,7 @@ async (page) => {
     verify(submissions === 1, 'Registration before the deadline did not succeed');
     await page.reload();
     await page.locator('body.ready').waitFor();
+    await page.waitForFunction(() => backendReady);
     await page.getByRole('button', { name: 'Apri l’invito' }).click();
     await page.locator('body[data-state="opened"]').waitFor();
     await page.locator('#rsvp-open').click();
@@ -60,6 +63,7 @@ async (page) => {
     serverClosed = true;
     await page.reload();
     await page.locator('body.ready').waitFor();
+    await page.waitForFunction(() => backendReady);
     await page.getByRole('button', { name: 'Apri l’invito' }).click();
     await page.locator('body[data-state="opened"]').waitFor();
     await page.locator('#rsvp-open').click();

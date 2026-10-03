@@ -76,6 +76,14 @@ Per `invitations`, l’handler verifica invece la sessione firmata con Supabase 
 Nessuna credenziale privilegiata arriva al browser.
 
 Senza link personale il sito è visibile, ma invio e campi sono disabilitati.
+Con un link personale, la lettera mostra **Per Nome Cognome** e il modulo
+ribadisce il destinatario. Se il nome è diverso dal proprio, si chiede a Kevin
+il link corretto. L’invio resta disabilitato finché il nome non è verificato.
+La lettura usa lo stesso endpoint con body `{"action":"identify","invitationToken":"TOKEN"}`:
+restituisce soltanto nome e cognome dell’invito valido e non revocato, con
+`Cache-Control: no-store`. Non richiede Turnstile e non inserisce risposte né
+consuma tentativi RSVP; ogni invio RSVP continua a richiedere Turnstile.
+Un errore temporaneo offre **Riprova verifica invito**; un link non valido resta bloccato.
 Il sito non usa `localStorage` o `sessionStorage` per dati personali.
 Immagini, font e musica sono locali. CSP via header vieta script inline/eval,
 blocca l’incorporamento dell’invito e consente gli iframe Turnstile. Presenti
@@ -146,6 +154,7 @@ anteprima già avviata:
 ```sh
 npx --yes --package @playwright/cli playwright-cli -s=kevin open http://127.0.0.1:8000 --browser chrome
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/invitation.browser.js
+npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/recipient.browser.js
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/rsvp-deadline.browser.js
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/admin.browser.js
 npx --yes --package @playwright/cli playwright-cli -s=kevin run-code --filename tests/music.browser.js

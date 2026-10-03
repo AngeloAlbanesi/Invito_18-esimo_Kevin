@@ -21,12 +21,14 @@ let databaseResult = { code: 'ok' };
 let verifiedUser = adminUserId;
 let createdInvitation;
 let unavailableService;
+let identifiedInvitations = [{ first_name: 'Mario', last_name: 'Rossi' }];
 globalThis.fetch = async (url, options) => {
     calls.push({ url, options });
     if (url.includes(unavailableService || 'never-match')) throw new Error('Offline');
     if (url.includes('siteverify')) return Response.json(challenge);
     if (url.endsWith('/auth/v1/user')) return Response.json({ id: verifiedUser });
     if (url.includes('/rsvp_invitations')) {
+        if (url.includes('select=first_name,last_name')) return Response.json(identifiedInvitations);
         if (options.method === 'POST') createdInvitation = JSON.parse(options.body);
         return Response.json(options.method ? [{ id: createdInvitation?.id || randomUUID() }] : []);
     }
@@ -41,6 +43,26 @@ const request = (body, headers = {}, method = 'POST') => new Request(origin + '/
 const submit = (body = payload, headers = {}, method = 'POST') => handleRequest(request(body, headers, method));
 const databaseCalls = () => calls.filter((call) => call.url.includes('/rest/v1/'));
 try {
+    const identityPayload = { action: 'identify', invitationToken: payload.invitationToken };
+    let identityResponse = await submit(identityPayload);
+    assert.equal(identityResponse.status, 200);
+    assert.equal(identityResponse.headers.get('Cache-Control'), 'no-store');
+    assert.deepEqual(await identityResponse.json(), { firstName: 'Mario', lastName: 'Rossi' });
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0].url.includes('revoked_at=is.null'));
+    assert.ok(calls[0].url.includes(createHash('sha256').update(payload.invitationToken).digest('hex')));
+    assert.ok(!calls[0].url.includes(payload.invitationToken));
+    calls = [];
+    assert.equal((await submit({ action: 'identify', invitationToken: 'bad' })).status, 403);
+    assert.equal((await submit({ ...identityPayload, attending: true })).status, 400);
+    assert.equal(calls.length, 0);
+    identifiedInvitations = [];
+    assert.equal((await submit(identityPayload)).status, 403);
+    unavailableService = 'rsvp_invitations';
+    assert.equal((await submit(identityPayload)).status, 503);
+    unavailableService = undefined;
+    identifiedInvitations = [{ first_name: 'Mario', last_name: 'Rossi' }];
+    calls = [];
     assert.equal((await submit(payload, {}, 'GET')).status, 405);
     assert.equal((await submit(payload, {}, 'OPTIONS')).status, 204);
     assert.equal((await submit(payload, { Origin: 'https://evil.example' })).status, 403);
