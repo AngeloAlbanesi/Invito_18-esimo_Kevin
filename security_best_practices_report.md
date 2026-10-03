@@ -181,3 +181,11 @@ di abuso: Turnstile e limiti non eliminano questo rischio.
 
 Rollback autorizzato soltanto verso versioni che mantengono inviti personali,
 Turnstile, RLS, limiti e origine esatta; non ripristinare la RPC legacy.
+
+
+### Chiusura distribuzione
+
+- Implementazione salvata su GitHub in `ff2c022`; build GitHub Pages completata con HTTPS e sorgente `main /docs`.
+- Cloudflare Pages distribuito sul solo pacchetto `output/site`, con configurazione Turnstile di produzione sul hostname previsto. Backend RSVP e pannello distribuiti su Supabase, entrambe le migrazioni applicate.
+- Stato DB finale verificato: **0 inviti, 0 risposte, RPC legacy assente**. L’account Kevin resta predisposto per l’attivazione privata; tutti gli inviti e le risposte di prova sono eliminati.
+- File privati ignorati da Git; scansione dei candidati al commit senza chiavi privilegiate, JWT amministrativi o email privata dell’organizzatore.
