@@ -11,8 +11,7 @@
 </head>
 <body>
     <main>
-        <h1>La tua ciurma</h1>
-        <p>Crea un link personale per ogni invitato, poi invialo tu. Ogni link permette una sola conferma: chi lo riceve inoltrato può usarlo.</p>
+        <header class="page-heading"><p class="eyebrow">KEVIN TOBIA · 18 ANNI</p><h1>Gestione prenotazioni</h1><p>Inviti personali e presenze alla festa del 28 novembre 2026.</p></header>
         <p id="admin-message" role="status" aria-live="polite"></p>
         <form id="login-form">
             <h2>Accesso riservato a Kevin</h2>
@@ -26,15 +25,32 @@
             <button type="submit">Salva password</button>
         </form>
         <section id="private-panel" hidden>
-            <button id="logout" type="button">Esci</button>
+            <div class="session-bar"><span>Area riservata all’organizzatore</span><button id="logout" type="button">Esci</button></div>
             <section id="accepted-dashboard" aria-labelledby="accepted-heading">
-                <h2 id="accepted-heading">Presenze confermate</h2>
-                <p class="dashboard-total">Totale conferme: <strong id="accepted-total">0</strong></p>
-                <p>Eliminare una persona cancella definitivamente la sua risposta e il suo invito. Il vecchio link smette di funzionare.</p>
-                <button id="refresh-accepted" type="button">Aggiorna presenze</button>
+                <div class="section-heading">
+                    <h2 id="accepted-heading">Presenze confermate <span id="accepted-total" class="count">0</span></h2>
+                    <div><button id="refresh-accepted" type="button">Aggiorna presenze</button><button id="print-reservations" type="button" class="primary">Stampa Prenotazioni</button></div>
+                </div>
+                <div class="table-tools">
+                    <label>Cerca partecipante<input id="participant-search" type="search" placeholder="Nome o cognome" autocomplete="off"></label>
+                    <label>Allergie / Intolleranze<select id="allergy-filter"><option value="all">Tutti</option><option value="with">Con segnalazioni</option><option value="without">Senza segnalazioni</option></select></label>
+                    <p id="visible-count" role="status" aria-live="polite"></p>
+                </div>
                 <p id="accepted-empty" hidden>Nessuna presenza confermata al momento.</p>
-                <ul id="accepted-list"></ul>
-                <button id="more-accepted" type="button" hidden>Carica altre presenze</button>
+                <div class="table-scroll" tabindex="0" role="region" aria-label="Tabella presenze confermate">
+                    <table id="participants-table">
+                        <caption class="sr-only">Partecipanti che hanno accettato l’invito</caption>
+                        <thead><tr>
+                            <th scope="col" data-sort="first_name" aria-sort="none"><button type="button">Nome ↕</button></th>
+                            <th scope="col" data-sort="last_name" aria-sort="ascending"><button type="button">Cognome ↑</button></th>
+                            <th scope="col">Conferma</th>
+                            <th scope="col" class="allergy-column">Allergie / Intolleranze</th>
+                            <th scope="col" data-sort="created_at" aria-sort="none"><button type="button">Data registrazione ↕</button></th>
+                            <th scope="col">Azioni</th>
+                        </tr></thead><tbody id="accepted-list"></tbody>
+                    </table>
+                </div>
+                <p class="section-note">Un invito per persona. Eliminare cancella definitivamente risposta e invito e invalida il vecchio link. La stampa comprende tutte le presenze, anche quelle nascoste dai filtri.</p>
             </section>
             <form id="create-invitation">
                 <h2>Nuovo invito personale</h2>
@@ -48,11 +64,20 @@
                 <label>Link personale<input id="invitation-link" type="text" readonly></label>
                 <button id="copy-link" type="button">Copia link</button>
             </section>
-            <h2>Inviti creati</h2>
+            <details class="invitations-section"><summary>Inviti creati</summary>
             <p>Sostituire un link invalida quello precedente e riattiva un invito revocato. Una conferma già ricevuta resta definitiva.</p>
             <button id="refresh-invitations" type="button">Aggiorna elenco</button>
-            <ul id="invitation-list"></ul>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="Tabella inviti creati"><table><thead><tr><th scope="col">Nome</th><th scope="col">Cognome</th><th scope="col">Stato link</th><th scope="col">Azioni</th></tr></thead><tbody id="invitation-list"></tbody></table></div>
             <button id="more-invitations" type="button" hidden>Carica altri</button>
+            </details>
+        </section>
+        <section id="print-view" class="print-only">
+            <h1>Elenco Prenotazioni</h1>
+            <p>Kevin Tobia · 18 anni · 28 novembre 2026 · La Fornace</p>
+            <p id="print-generated"></p><p id="print-total"></p>
+            <table><colgroup><col class="print-name"><col class="print-name"><col class="print-status"><col class="print-allergies"><col class="print-date"></colgroup>
+                <thead><tr><th scope="col">Nome</th><th scope="col">Cognome</th><th scope="col">Conferma</th><th scope="col">Allergie / Intolleranze</th><th scope="col">Data registrazione</th></tr></thead><tbody id="print-participants"></tbody>
+            </table>
         </section>
     </main>
 </body>

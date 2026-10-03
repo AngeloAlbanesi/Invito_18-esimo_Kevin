@@ -15,8 +15,9 @@ metadati WhatsApp conservati. Backend Supabase, repository GitHub, hosting gratu
 3. Inserisce nome e cognome dell’invitato e seleziona **Crea link**.
 4. Copia subito il link e lo invia personalmente all’invitato.
 5. Può revocarlo o sostituirlo dall’elenco. Se perde un link, lo sostituisce: il database conserva soltanto il suo hash.
-6. In **Presenze confermate** vede il totale delle adesioni, nome/cognome e data della risposta. **Aggiorna presenze** recupera le nuove conferme; **Carica altre presenze** mostra le pagine successive, quando necessarie.
+6. In **Presenze confermate** vede una tabella con nome, cognome, conferma, allergie/intolleranze e data della risposta. **Aggiorna presenze** recupera tutte le pagine. La ricerca, il filtro delle allergie e l’ordinamento delle intestazioni operano sull’elenco completo; su telefono la tabella scorre orizzontalmente.
 7. **Elimina persona** chiede conferma e cancella definitivamente risposta e invito. Il link precedente non funziona più. Per invitare nuovamente quella persona deve creare un nuovo invito.
+8. **Stampa Prenotazioni** aggiorna tutte le presenze e apre la finestra di stampa del browser. Scegliere la stampante oppure **Salva come PDF**. La vista A4 orizzontale comprende titolo, data di generazione, totale e tabella completa con allergie; ricerca e filtri non escludono persone dalla stampa.
 
 Non serve consegnare preventivamente una lista allo sviluppatore. Ogni invito
 ammette una risposta definitiva. Il link autorizza chi lo possiede: inoltrarlo
@@ -24,7 +25,7 @@ permette ad altri di utilizzarlo. Sostituire il link non cancella una risposta
 già ricevuta. Per correzioni si contatta Kevin; l’amministratore del progetto
 può intervenire dal database privato. La dashboard mostra soltanto chi ha accettato,
 compresi gli invitati confermati il cui link è stato successivamente revocato;
-non mostra allergie. Eliminazione e invio RSVP usano lo stesso blocco sul singolo
+mostra le allergie salvate nel database, oppure **Nessuna**. Eliminazione e invio RSVP usano lo stesso blocco sul singolo
 invito, evitando risposte orfane; ripetere una cancellazione già completata è sicuro.
 
 Solo lo specifico UUID Auth configurato sul server può usare le API del pannello.
@@ -174,12 +175,23 @@ Screenshot in `output/playwright`, escluso da Git. Prove e limiti nel
 `security_best_practices_report.md`: distinguere servizi simulati, DB reale,
 API reale e challenge umana da verificare prima della distribuzione agli invitati.
 
+Il test `tests/allergy-flow.browser.js` verifica form RSVP, salvataggio con
+consenso, dashboard e PDF usando **Auth e DB reali**, con soli dati fittizi e
+Turnstile simulato nel server locale `tests/live-allergy-bridge.mjs`.
+Il server richiede `output/private/allergy-test-config.json` con `serviceKey`
+privata e `publicKey` pubblica Supabase: prepararlo solo con CLI autenticata,
+permessi 0600, senza stampare chiavi. Avviare `node tests/live-allergy-bridge.mjs`
+e poi eseguire il file browser tramite `run-code`. Il test rimuove inviti,
+risposte e account temporaneo nel blocco `finally`; arrestare il server ed
+eliminare la configurazione privata al termine. Non pubblicare né usare questo
+server per gli invitati. PDF di verifica in `output/playwright`, con dati fittizi.
+
 Consultare le metriche Edge Functions Supabase per i conteggi HTTP **403, 429,
 503**, senza esportare payload, header Authorization o URL di attivazione.
 Un aumento 403 può indicare challenge/link errati; 429 i limiti; 503 un guasto
 di Auth, Turnstile o DB. Controllare lo stato del progetto Free prima della festa.
-Le conferme e le allergie sono consultabili solo dal Table Editor privato da
-persone autorizzate: concordare accessi e cancellazione dopo l’evento.
+Le conferme e le allergie sono consultabili dal pannello riservato a Kevin e
+dal Table Editor privato da persone autorizzate.
 Turnstile e limiti riducono gli abusi; non eliminano gli attacchi alle invocazioni.
 
 Un rollback conserva **token personali, Turnstile, RLS, limiti e origine esatta**.

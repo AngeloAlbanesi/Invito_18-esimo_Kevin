@@ -28,7 +28,7 @@ globalThis.fetch = async (url, options) => {
     if (url.includes('siteverify')) return Response.json(challenge);
     if (url.endsWith('/auth/v1/user')) return Response.json({ id: verifiedUser });
     if (url.includes('/rsvp_responses')) return Response.json([
-        { invitation_id: '11111111-1111-4111-8111-111111111111', first_name: 'Mario', last_name: 'Rossi', created_at: '2026-10-03T16:00:00Z' },
+        { invitation_id: '11111111-1111-4111-8111-111111111111', first_name: 'Mario', last_name: 'Rossi', created_at: '2026-10-03T16:00:00Z', allergies: 'TEST: arachidi' },
     ], { headers: { 'Content-Range': '0-0/1' } });
     if (url.endsWith('/rpc/delete_personal_invitation')) return Response.json({ ok: true });
     if (url.includes('/rsvp_invitations')) {
@@ -153,7 +153,8 @@ try {
     assert.equal(acceptedBody.accepted[0].first_name, 'Mario');
     const acceptedQuery = calls.find(call => call.url.includes('/rsvp_responses'));
     assert.ok(acceptedQuery.url.includes('attending=eq.true'));
-    assert.equal(acceptedQuery.url.includes('allerg'), false);
+    assert.ok(acceptedQuery.url.includes('created_at,allergies'));
+    assert.equal(acceptedBody.accepted[0].allergies, 'TEST: arachidi');
     assert.equal((await adminRequest({ action: 'accepted', cursor: 'invalid' })).status, 400);
     const deletedId = randomUUID();
     assert.equal((await adminRequest({ action: 'delete', invitationId: deletedId })).status, 200);

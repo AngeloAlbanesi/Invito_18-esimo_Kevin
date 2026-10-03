@@ -79,7 +79,7 @@ export async function handleInvitationRequest(request) {
             if (payload.cursor !== undefined && !isUuid(payload.cursor)) return respond(400, { error: 'Pagina non valida.' });
             const cursorFilter = payload.cursor ? `&invitation_id=gt.${payload.cursor}` : '';
             const result = await fetch(`${supabaseUrl}/rest/v1/rsvp_responses`
-                + '?select=invitation_id,first_name,last_name,created_at&attending=eq.true'
+                + '?select=invitation_id,first_name,last_name,created_at,allergies&attending=eq.true'
                 + `&invitation_id=not.is.null&order=invitation_id.asc&limit=100${cursorFilter}`, {
                 headers: { ...databaseHeaders, Prefer: 'count=exact' }, signal: AbortSignal.timeout(10000),
             });

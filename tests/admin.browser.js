@@ -12,6 +12,7 @@ async (page) => {
     const accepted = [{invitation_id:'11111111-1111-4111-8111-111111111111',
         first_name:'<img src=x onerror=alert(1)>',last_name:'Presente',created_at:'2026-10-03T16:00:00Z'}];
     const requests = [];
+    let failNextPage = false;
     await page.route('**/auth/v1/**', async route => {
         await route.fulfill({ status: 200, contentType: 'application/json',
             headers: { 'Access-Control-Allow-Origin': 'http://127.0.0.1:8000' },
@@ -20,6 +21,10 @@ async (page) => {
     await page.route('**/functions/v1/invitations', async route => {
         const payload = route.request().postDataJSON();
         requests.push(payload);
+        if (payload.action === 'accepted' && payload.cursor && failNextPage) {
+            return route.fulfill({status:503,contentType:'application/json',
+                headers:{'Access-Control-Allow-Origin':'http://127.0.0.1:8000'},body:JSON.stringify({error:'Pagina non disponibile.'})});
+        }
         if (payload.action === 'create') invitations.push({id: payload.invitationId,
             first_name: payload.firstName, last_name: payload.lastName, revoked_at: null});
         if (payload.action === 'revoke') invitations[0].revoked_at = '2026-10-03T00:00:00Z';
@@ -45,7 +50,7 @@ async (page) => {
     await page.getByRole('button', {name: 'Accedi', exact: true}).click();
     await page.locator('#private-panel').waitFor({state: 'visible'});
     verify(await page.locator('#accepted-total').textContent() === '1', 'Accepted count absent');
-    verify(await page.locator('#accepted-list li').count() === 1, 'Accepted person absent');
+    verify(await page.locator('#accepted-list tr').count() === 1, 'Accepted person absent');
     verify(await page.locator('#accepted-list img').count() === 0, 'Confirmed name interpreted as HTML');
     for (const width of [320, 1440]) {
         await page.setViewportSize({width,height:900});
@@ -59,19 +64,40 @@ async (page) => {
     await page.getByRole('button',{name:/Elimina persona:/}).click();
     await page.locator('#accepted-empty').waitFor({state:'visible'});
     verify(await page.locator('#accepted-total').textContent() === '0', 'Deletion retained accepted count');
-    verify(await page.locator('#accepted-list li').count() === 0, 'Deleted person remains in dashboard');
+    verify(await page.locator('#accepted-list tr').count() === 0, 'Deleted person remains in dashboard');
     verify(requests.filter(request => request.action === 'delete').length === 1, 'Deletion duplicated');
     for (let index = 0; index < 101; index += 1) accepted.push({
         invitation_id: String(index).padStart(8, '0') + '-1111-4111-8111-111111111111',
-        first_name:'Persona',last_name:String(index),created_at:'2026-10-03T16:00:00Z',
+        first_name:'Persona',last_name:String(index),created_at:new Date(Date.UTC(2026,9,3,16,index)).toISOString(),
+        allergies:index === 0 ? 'TEST: <img src=x> ' + 'intolleranza '.repeat(75) + 'ALLERGIA_FINE_TEST' : null,
     });
     await page.getByRole('button',{name:'Aggiorna presenze',exact:true}).click();
-    await page.waitForFunction(() => document.querySelectorAll('#accepted-list li').length === 100);
+    await page.waitForFunction(() => document.querySelectorAll('#accepted-list tr').length === 101);
     verify(await page.locator('#accepted-total').textContent() === '101', 'Total limited to first page');
-    await page.getByRole('button',{name:'Carica altre presenze',exact:true}).click();
-    await page.waitForFunction(() => document.querySelectorAll('#accepted-list li').length === 101);
-    verify(await page.locator('#accepted-total').textContent() === '101', 'Pagination changed total');
-    verify(await page.locator('#more-accepted').isHidden(), 'Pagination did not finish');
+    verify(requests.some(request => request.action === 'accepted' && request.cursor), 'Second page not retrieved');
+    await page.locator('[data-sort="last_name"] button').click();
+    verify(await page.locator('#accepted-list tr').first().locator('td').nth(1).textContent() === '99', 'Surname descending sort incorrect');
+    await page.locator('[data-sort="created_at"] button').click();
+    await page.locator('[data-sort="created_at"] button').click();
+    verify(await page.locator('#accepted-list tr').first().locator('td').nth(1).textContent() === '100', 'Date sorting incorrect');
+    await page.locator('#allergy-filter').selectOption('with');
+    verify(await page.locator('#accepted-list tr').count() === 1, 'Allergy filter incomplete');
+    verify(await page.locator('#accepted-list img').count() === 0, 'Allergy text interpreted as HTML');
+    await page.evaluate(() => { window.printCalls=0; window.print=()=>{window.printCalls++;window.dispatchEvent(new Event('beforeprint'));}; });
+    failNextPage = true;
+    await page.getByRole('button',{name:'Stampa Prenotazioni',exact:true}).click();
+    await page.getByText('Pagina non disponibile.',{exact:true}).waitFor();
+    verify(await page.evaluate(() => window.printCalls === 0), 'Partial data opened print dialog');
+    verify(await page.locator('#print-participants tr').count() === 0, 'Partial data prepared print');
+    failNextPage = false;
+    await page.getByRole('button',{name:'Stampa Prenotazioni',exact:true}).click();
+    await page.waitForFunction(() => window.printCalls === 1);
+    verify(await page.locator('#print-participants tr').count() === 101, 'Print missing later pages or filtered people');
+    await page.emulateMedia({media:'print'});
+    verify(await page.locator('#private-panel').isHidden(), 'Print retains dashboard');
+    await page.pdf({path:'output/playwright/prenotazioni-multipagina-test.pdf',preferCSSPageSize:true,printBackground:true});
+    await page.emulateMedia({media:'screen'});
+    await page.locator('#allergy-filter').selectOption('all');
     accepted.splice(0);
     await page.getByRole('button',{name:'Aggiorna presenze',exact:true}).click();
     await page.locator('#accepted-empty').waitFor({state:'visible'});
@@ -85,6 +111,7 @@ async (page) => {
     await page.locator('#new-link').waitFor({state: 'visible'});
     verify((await page.locator('#invitation-link').inputValue()).includes('/#invito='), 'Personal link absent');
     verify(await page.locator('#invitation-list img').count() === 0, 'Guest name interpreted as HTML');
+    await page.locator('.invitations-section summary').click();
     await page.getByRole('button', {name: 'Revoca', exact: true}).click();
     await page.getByText(/· revocato/).waitFor();
     await page.getByRole('button', {name: 'Sostituisci link', exact: true}).click();
@@ -96,7 +123,7 @@ async (page) => {
     await page.getByRole('button', {name: 'Esci', exact: true}).click();
     await page.locator('#login-form').waitFor({state: 'visible'});
     verify(await page.locator('#invitation-link').inputValue() === '', 'Logout retained private link');
-    verify(await page.locator('#accepted-list li').count() === 0, 'Logout retained confirmed guests');
+    verify(await page.locator('#accepted-list tr').count() === 0, 'Logout retained confirmed guests');
     await page.goto('http://127.0.0.1:8000/admin.html#token_hash=simulated-activation&type=invite');
     await page.locator('#activate-form').waitFor({state: 'visible'});
     verify(!page.url().includes('#'), 'Activation token retained in URL');

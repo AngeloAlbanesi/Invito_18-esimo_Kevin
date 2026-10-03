@@ -5,14 +5,18 @@ const privatePanel = document.getElementById('private-panel');
 const invitationList = document.getElementById('invitation-list');
 const moreButton = document.getElementById('more-invitations');
 const acceptedList = document.getElementById('accepted-list');
-const moreAcceptedButton = document.getElementById('more-accepted');
+const searchInput = document.getElementById('participant-search');
+const allergyFilter = document.getElementById('allergy-filter');
 const authUrl = 'https://dnpvzzrfdwbcecexuccm.supabase.co/auth/v1';
 const invitationsUrl = 'https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/invitations';
 let accessToken;
 let refreshToken;
 let sessionExpiresAt = 0;
 let nextCursor;
-let acceptedCursor;
+let acceptedPeople = [];
+let acceptedLoaded = false;
+let sortColumn = 'last_name';
+let sortDirection = 1;
 let pendingCreation;
 let operationRunning = false;
 
@@ -61,8 +65,11 @@ function clearSession() {
     document.getElementById('accepted-total').textContent = '0';
     document.getElementById('accepted-empty').hidden = true;
     nextCursor = null;
-    acceptedCursor = null;
-    moreAcceptedButton.hidden = true;
+    acceptedPeople = [];
+    acceptedLoaded = false;
+    searchInput.value = '';
+    allergyFilter.value = 'all';
+    clearPrintView();
     document.getElementById('invitation-link').value = '';
     document.getElementById('new-link').hidden = true;
     privatePanel.hidden = true;
@@ -97,11 +104,13 @@ async function loadInvitations(append = false) {
     const result = await requestInvitations({ action: 'list', ...(append && nextCursor ? { cursor: nextCursor } : {}) });
     if (!append) invitationList.replaceChildren();
     for (const invitation of result.invitations) {
-        const item = document.createElement('li');
-        const title = document.createElement('span');
-        title.textContent = invitation.first_name + ' ' + invitation.last_name
-            + (invitation.revoked_at ? ' · revocato' : ' · attivo');
-        item.append(title);
+        const item = document.createElement('tr');
+        appendCell(item, invitation.first_name);
+        appendCell(item, invitation.last_name);
+        appendCell(item, invitation.revoked_at ? '· revocato' : '· attivo');
+        const actions = document.createElement('td');
+        actions.className = 'actions';
+        item.append(actions);
         for (const action of ['rotate', 'revoke']) {
             const button = document.createElement('button');
             button.type = 'button';
@@ -117,7 +126,7 @@ async function loadInvitations(append = false) {
                     else adminMessage.textContent = 'Invito revocato.';
                 });
             });
-            item.append(button);
+            actions.append(button);
         }
         invitationList.append(item);
     }
@@ -125,26 +134,73 @@ async function loadInvitations(append = false) {
     moreButton.hidden = !nextCursor;
 }
 
-async function loadAccepted(append = false) {
-    const result = await requestInvitations({ action: 'accepted',
-        ...(append && acceptedCursor ? { cursor: acceptedCursor } : {}) });
-    if (!append) {
-        acceptedList.replaceChildren();
-        document.getElementById('accepted-total').textContent = String(result.total);
-        document.getElementById('accepted-empty').hidden = result.total !== 0;
+function appendCell(row, value, className = '') {
+    const cell = document.createElement('td');
+    cell.textContent = value;
+    cell.className = className;
+    row.append(cell);
+    return cell;
+}
+
+function formatRegistrationDate(value) {
+    return new Date(value).toLocaleString('it-IT', {
+        dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Rome',
+    });
+}
+
+function compareParticipants(firstPerson, secondPerson) {
+    const comparison = sortColumn === 'created_at'
+        ? Date.parse(firstPerson.created_at) - Date.parse(secondPerson.created_at)
+        : firstPerson[sortColumn].localeCompare(secondPerson[sortColumn], 'it', { sensitivity: 'base' });
+    return sortDirection * comparison || firstPerson.invitation_id.localeCompare(secondPerson.invitation_id);
+}
+
+async function loadAccepted() {
+    const participants = [];
+    let cursor;
+    let expectedTotal;
+    do {
+        const result = await requestInvitations({ action: 'accepted', ...(cursor ? { cursor } : {}) });
+        if (expectedTotal === undefined) expectedTotal = result.total;
+        participants.push(...result.accepted);
+        if (result.nextCursor && result.nextCursor <= (cursor || '')) {
+            throw new Error('Elenco incompleto. Aggiorna le presenze e riprova.');
+        }
+        cursor = result.nextCursor;
+    } while (cursor);
+    if (participants.length !== expectedTotal || new Set(participants.map(person => person.invitation_id)).size !== participants.length) {
+        throw new Error('Le presenze sono cambiate durante il caricamento. Aggiorna e riprova.');
     }
-    for (const person of result.accepted) {
-        const item = document.createElement('li');
-        const name = document.createElement('span');
+    acceptedPeople = participants;
+    acceptedLoaded = true;
+    document.getElementById('accepted-total').textContent = String(participants.length);
+    renderParticipants();
+}
+
+function renderParticipants() {
+    const query = searchInput.value.trim().toLocaleLowerCase('it');
+    const visiblePeople = acceptedPeople.filter(person => {
+        const matchesName = (person.first_name + ' ' + person.last_name).toLocaleLowerCase('it').includes(query);
+        const hasAllergies = Boolean(person.allergies?.trim());
+        return matchesName && (allergyFilter.value === 'all' || hasAllergies === (allergyFilter.value === 'with'));
+    }).sort(compareParticipants);
+    acceptedList.replaceChildren();
+    document.getElementById('visible-count').textContent = visiblePeople.length + ' di ' + acceptedPeople.length + ' presenze';
+    const emptyMessage = document.getElementById('accepted-empty');
+    emptyMessage.hidden = visiblePeople.length !== 0;
+    emptyMessage.textContent = acceptedPeople.length ? 'Nessun partecipante corrisponde alla ricerca o al filtro.' : 'Nessuna presenza confermata al momento.';
+    for (const person of visiblePeople) {
+        const item = document.createElement('tr');
         const fullName = person.first_name + ' ' + person.last_name;
-        name.textContent = fullName;
-        const confirmedDate = document.createElement('span');
-        confirmedDate.className = 'confirmed-date';
-        confirmedDate.textContent = 'Confermato il ' + new Date(person.created_at).toLocaleString('it-IT', {
-            dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Rome',
-        });
+        appendCell(item, person.first_name);
+        appendCell(item, person.last_name);
+        appendCell(item, 'Accettato', 'status');
+        appendCell(item, person.allergies?.trim() || 'Nessuna', 'allergies' + (person.allergies?.trim() ? ' has-allergies' : ''));
+        appendCell(item, formatRegistrationDate(person.created_at), 'confirmed-date');
+        const actions = appendCell(item, '', 'actions');
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
+        deleteButton.className = 'danger';
         deleteButton.textContent = 'Elimina persona';
         deleteButton.setAttribute('aria-label', 'Elimina persona: ' + fullName);
         deleteButton.addEventListener('click', () => {
@@ -153,17 +209,66 @@ async function loadAccepted(append = false) {
                 await requestInvitations({ action: 'delete', invitationId: person.invitation_id });
                 document.getElementById('invitation-link').value = '';
                 document.getElementById('new-link').hidden = true;
+                clearPrintView();
                 await loadInvitations();
                 await loadAccepted();
                 adminMessage.textContent = 'Persona eliminata. Risposta e invito cancellati.';
             });
         });
-        item.append(name, confirmedDate, deleteButton);
+        actions.append(deleteButton);
         acceptedList.append(item);
     }
-    acceptedCursor = result.nextCursor;
-    moreAcceptedButton.hidden = !acceptedCursor;
 }
+
+function clearPrintView() {
+    document.body.classList.remove('print-ready');
+    document.getElementById('print-participants').replaceChildren();
+    document.getElementById('print-generated').textContent = '';
+    document.getElementById('print-total').textContent = '';
+}
+
+function preparePrintView() {
+    if (!accessToken || !acceptedLoaded) return;
+    const printRows = document.getElementById('print-participants');
+    printRows.replaceChildren();
+    for (const person of [...acceptedPeople].sort(compareParticipants)) {
+        const row = document.createElement('tr');
+        appendCell(row, person.first_name);
+        appendCell(row, person.last_name);
+        appendCell(row, 'Accettato');
+        appendCell(row, person.allergies?.trim() || 'Nessuna');
+        appendCell(row, formatRegistrationDate(person.created_at));
+        printRows.append(row);
+    }
+    document.getElementById('print-generated').textContent = 'Generato il ' + formatRegistrationDate(new Date());
+    document.getElementById('print-total').textContent = 'Totale partecipanti: ' + acceptedPeople.length;
+    document.body.classList.add('print-ready');
+}
+
+searchInput.addEventListener('input', renderParticipants);
+allergyFilter.addEventListener('change', renderParticipants);
+document.querySelectorAll('[data-sort]').forEach(header => {
+    header.querySelector('button').addEventListener('click', () => {
+        sortDirection = sortColumn === header.dataset.sort ? -sortDirection : 1;
+        sortColumn = header.dataset.sort;
+        document.querySelectorAll('[data-sort]').forEach(column => {
+            const active = column.dataset.sort === sortColumn;
+            column.setAttribute('aria-sort', active ? (sortDirection === 1 ? 'ascending' : 'descending') : 'none');
+            const button = column.querySelector('button');
+            button.textContent = button.textContent.slice(0, -1) + (active ? (sortDirection === 1 ? '↑' : '↓') : '↕');
+        });
+        renderParticipants();
+    });
+});
+document.getElementById('print-reservations').addEventListener('click', () => runOperation(async () => {
+    clearPrintView();
+    await loadAccepted();
+    preparePrintView();
+    adminMessage.textContent = 'Elenco completo pronto. Nella finestra di stampa puoi scegliere Salva come PDF.';
+    window.print();
+}));
+window.addEventListener('beforeprint', preparePrintView);
+window.addEventListener('afterprint', clearPrintView);
 
 loginForm.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -224,10 +329,6 @@ document.getElementById('refresh-invitations').addEventListener('click', () => r
 moreButton.addEventListener('click', () => runOperation(async () => { await loadInvitations(true); adminMessage.textContent = 'Elenco aggiornato.'; }));
 document.getElementById('refresh-accepted').addEventListener('click', () => runOperation(async () => {
     await loadAccepted();
-    adminMessage.textContent = 'Presenze aggiornate.';
-}));
-moreAcceptedButton.addEventListener('click', () => runOperation(async () => {
-    await loadAccepted(true);
     adminMessage.textContent = 'Presenze aggiornate.';
 }));
 document.getElementById('logout').addEventListener('click', () => runOperation(async () => {

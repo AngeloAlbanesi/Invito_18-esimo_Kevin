@@ -1,18 +1,73 @@
+:root { color-scheme: light; --ink: #182534; --muted: #637184; --border: #dbe2e9; --accent: #2457d6; }
 * { box-sizing: border-box; }
-body { margin: 0; background: #f8edcf; color: #243c3d; font: 16px/1.6 system-ui, sans-serif; }
-main { max-width: 760px; padding: 24px; margin: auto; }
-h1 { color: #aa3328; }
-form, #new-link { padding: 20px; background: #fffbf1; border: 1px solid #c7b994; margin: 24px 0; }
-label { display: block; margin: 12px 0; }
-input { width: 100%; padding: 12px; margin-top: 4px; border: 1px solid #a79c7e; font: inherit; }
-button { min-height: 44px; padding: 10px 16px; border: 1px solid #aa3328; background: #aa3328; color: white; font: inherit; cursor: pointer; margin: 4px; }
+body { margin: 0; background: #f2f5f8; color: var(--ink); font: 14px/1.5 system-ui, sans-serif; }
+main { max-width: 1440px; padding: 28px; margin: auto; }
+h1 { font-size: 28px; margin: 4px 0; letter-spacing: -.6px; }
+h2 { font-size: 18px; margin: 0; }
+p { margin: 8px 0; }
+.page-heading p, .section-note, .session-bar, .confirmed-date { color: var(--muted); }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+.session-bar, .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.session-bar { margin-bottom: 12px; }
+#admin-message { min-height: 24px; overflow-wrap: anywhere; }
+#login-form, #activate-form { max-width: 440px; }
+form, #new-link, #accepted-dashboard, .invitations-section { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin: 16px 0; }
+label { display: block; color: var(--muted); font-size: 12px; font-weight: 600; margin: 10px 0; }
+input, select { width: 100%; padding: 9px 10px; margin-top: 4px; border: 1px solid #bbc7d5; border-radius: 5px; background: white; color: var(--ink); font: 14px/1.5 system-ui, sans-serif; }
+button { min-height: 38px; padding: 7px 12px; border: 1px solid #bbc7d5; border-radius: 5px; background: white; color: var(--ink); font: inherit; cursor: pointer; margin: 2px; }
+button:hover { background: #eef3fb; }
+button.primary, form button[type="submit"] { background: var(--accent); color: white; border-color: var(--accent); }
+button.danger { color: #aa2635; border-color: #e5b9bf; }
 button:disabled { opacity: .5; cursor: wait; }
-ul { padding: 0; list-style: none; }
-li { border-bottom: 1px solid #c7b994; padding: 16px 0; overflow-wrap: anywhere; }
-li span { display: block; }
-#admin-message { overflow-wrap: anywhere; }
-#accepted-dashboard { margin: 24px 0; padding: 20px; border: 1px solid #c7b994; background: #fffbf1; }
-.dashboard-total { font-size: 20px; }
-.dashboard-total strong { color: #aa3328; font-size: 32px; }
-.confirmed-date { color: #546262; font-size: 14px; }
-[hidden] { display: none !important; }
+:focus-visible { outline: 3px solid #7398f4; outline-offset: 2px; }
+.count { display: inline-block; padding: 1px 8px; border-radius: 5px; color: #2457d6; background: #edf2ff; font: 14px/1.6 ui-monospace, monospace; }
+.table-tools { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+.table-tools label { margin: 0; width: 240px; max-width: 100%; }
+#visible-count { color: var(--muted); font-size: 12px; }
+.table-scroll { overflow: auto; max-height: 65vh; border: 1px solid var(--border); border-radius: 5px; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 880px; text-align: left; font-size: 13px; }
+th { background: #edf1f6; font-weight: 600; color: #475569; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th button { font-weight: 600; border: 0; padding: 0; margin: 0; min-height: 28px; background: transparent; color: inherit; }
+td { overflow-wrap: anywhere; max-width: 260px; }
+td.allergies { min-width: 220px; white-space: pre-wrap; }
+td.actions { white-space: nowrap; }
+td.actions button { font-size: 12px; min-height: 32px; }
+tbody tr:nth-child(even) { background: #fafbfd; }
+tbody tr:hover { background: #f0f5ff; }
+.status { color: #167342; font-weight: 600; white-space: nowrap; }
+.has-allergies { color: #8b3d0b; font-weight: 600; }
+.section-note { font-size: 12px; margin-top: 12px; }
+#create-invitation { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; }
+#create-invitation h2 { width: 100%; }
+#create-invitation label { flex: 1; min-width: 180px; margin-bottom: 0; }
+.invitations-section summary { font-weight: 600; cursor: pointer; }
+.invitations-section > p { color: var(--muted); font-size: 12px; margin: 12px 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.print-only, [hidden] { display: none !important; }
+@media (max-width: 600px) {
+    main { padding: 16px; }
+    h1 { font-size: 24px; }
+    #accepted-dashboard { padding: 12px; }
+    .table-tools label { width: 100%; }
+    #create-invitation label { min-width: 100%; }
+}
+@page { size: A4 landscape; margin: 12mm; }
+@media print {
+    body { background: white; color: black; font: 10pt/1.4 Arial, sans-serif; }
+    main { max-width: none; padding: 0; margin: 0; }
+    main > * { display: none !important; }
+    body.print-ready #print-view { display: block !important; }
+    #print-view h1 { font-size: 20pt; color: black; margin-bottom: 6mm; }
+    #print-view p { font-size: 10pt; }
+    #print-view table { min-width: 0; width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 6mm; font-size: 9pt; }
+    #print-view th, #print-view td { position: static; padding: 2.5mm; border: 1px solid #9ba4ad; max-width: none; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: black; }
+    #print-view th { background: #eee; }
+    #print-view thead { display: table-header-group; }
+    #print-view tr { break-inside: avoid; }
+    #print-view tbody tr { background: white; }
+    .print-name { width: 16%; }
+    .print-status { width: 12%; }
+    .print-allergies { width: 36%; }
+    .print-date { width: 20%; }
+}
