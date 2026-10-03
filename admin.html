@@ -27,6 +27,15 @@
         </form>
         <section id="private-panel" hidden>
             <button id="logout" type="button">Esci</button>
+            <section id="accepted-dashboard" aria-labelledby="accepted-heading">
+                <h2 id="accepted-heading">Presenze confermate</h2>
+                <p class="dashboard-total">Totale conferme: <strong id="accepted-total">0</strong></p>
+                <p>Eliminare una persona cancella definitivamente la sua risposta e il suo invito. Il vecchio link smette di funzionare.</p>
+                <button id="refresh-accepted" type="button">Aggiorna presenze</button>
+                <p id="accepted-empty" hidden>Nessuna presenza confermata al momento.</p>
+                <ul id="accepted-list"></ul>
+                <button id="more-accepted" type="button" hidden>Carica altre presenze</button>
+            </section>
             <form id="create-invitation">
                 <h2>Nuovo invito personale</h2>
                 <label>Nome<input name="firstName" maxlength="80" required></label>

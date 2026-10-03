@@ -11,4 +11,8 @@ ul { padding: 0; list-style: none; }
 li { border-bottom: 1px solid #c7b994; padding: 16px 0; overflow-wrap: anywhere; }
 li span { display: block; }
 #admin-message { overflow-wrap: anywhere; }
+#accepted-dashboard { margin: 24px 0; padding: 20px; border: 1px solid #c7b994; background: #fffbf1; }
+.dashboard-total { font-size: 20px; }
+.dashboard-total strong { color: #aa3328; font-size: 32px; }
+.confirmed-date { color: #546262; font-size: 14px; }
 [hidden] { display: none !important; }

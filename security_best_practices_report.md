@@ -198,3 +198,13 @@ Turnstile, RLS, limiti e origine esatta; non ripristinare la RPC legacy.
 - Backend online verificato con invito temporaneo: nome corretto, token sconosciuto e revocato HTTP 403, contatore tentativi invariato. Invito di prova rimosso senza conferme.
 - Backend e frontend pubblicati; HTML, JavaScript e CSS online coincidono con il pacchetto testato. CSP e blocco iframe confermati negli header HTTPS.
 - Mostrare il nome permette al destinatario di riconoscere un link inviato per errore; resta una credenziale al portatore, senza verifica indipendente dell’identità di chi apre il link.
+
+### Dashboard presenze e cancellazione — 3 ottobre 2026
+
+- Pannello Kevin: totale delle adesioni positive, nome/cognome e data della conferma, aggiornamento manuale e paginazione da 100 righe. Allergie escluse dal contratto API.
+- Azioni `accepted` e `delete` protette dalla verifica Supabase Auth e dallo specifico UUID dell’organizzatore; cache disabilitata. Nessun accesso pubblico a elenco o procedura di cancellazione.
+- **Elimina persona** richiede conferma con il nome e avvisa dell’effetto definitivo: risposta e invito cancellati insieme, token precedente inutilizzabile. La procedura privata usa lo stesso blocco sul singolo invito della procedura RSVP; i retry della cancellazione sono idempotenti.
+- Test Node: accesso negato senza sessione o con UUID diverso, filtro delle sole adesioni positive, campi senza allergie, validazione identificativi ed errore del servizio di cancellazione.
+- Chrome 320/1440 px con Auth/API simulati: conteggio, lista vuota, annullamento/conferma cancellazione, 101 persone su due pagine, nomi resi come testo, logout senza dati residui, nessun errore JavaScript o CSP.
+- SQL reale in transazione annullata: privilegi pubblici negati, cancellazione di entrambe le righe, retry e rifiuto RSVP del token eliminato. REST reale con due record temporanei: esclusione di chi rifiuta, conteggio e campi corretti, cancellazione effettiva. API online senza autenticazione HTTP 401. Tutti i record di prova rimossi.
+- Migrazione aggiuntiva, backend e frontend distribuiti. HTML, JavaScript e CSS della dashboard online confrontati con i file verificati. Il login e le azioni dal browser di Kevin con la nuova dashboard non sono stati eseguiti durante questi test.

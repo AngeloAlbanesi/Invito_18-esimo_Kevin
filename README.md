@@ -15,12 +15,17 @@ metadati WhatsApp conservati. Backend Supabase, repository GitHub, hosting gratu
 3. Inserisce nome e cognome dell’invitato e seleziona **Crea link**.
 4. Copia subito il link e lo invia personalmente all’invitato.
 5. Può revocarlo o sostituirlo dall’elenco. Se perde un link, lo sostituisce: il database conserva soltanto il suo hash.
+6. In **Presenze confermate** vede il totale delle adesioni, nome/cognome e data della risposta. **Aggiorna presenze** recupera le nuove conferme; **Carica altre presenze** mostra le pagine successive, quando necessarie.
+7. **Elimina persona** chiede conferma e cancella definitivamente risposta e invito. Il link precedente non funziona più. Per invitare nuovamente quella persona deve creare un nuovo invito.
 
 Non serve consegnare preventivamente una lista allo sviluppatore. Ogni invito
 ammette una risposta definitiva. Il link autorizza chi lo possiede: inoltrarlo
 permette ad altri di utilizzarlo. Sostituire il link non cancella una risposta
 già ricevuta. Per correzioni si contatta Kevin; l’amministratore del progetto
-può intervenire dal database privato. Il pannello gestisce inviti e non mostra allergie.
+può intervenire dal database privato. La dashboard mostra soltanto chi ha accettato,
+compresi gli invitati confermati il cui link è stato successivamente revocato;
+non mostra allergie. Eliminazione e invio RSVP usano lo stesso blocco sul singolo
+invito, evitando risposte orfane; ripetere una cancellazione già completata è sicuro.
 
 Solo lo specifico UUID Auth configurato sul server può usare le API del pannello.
 Un account Supabase diverso non ottiene accesso, anche se riesce ad autenticarsi.
@@ -144,6 +149,7 @@ node tests/rsvp.test.mjs
 python3 tests/build.test.py
 python3 tests/serve.test.py
 supabase db query --linked --file tests/personal-rsvp-database.sql
+supabase db query --linked --file tests/admin-dashboard-database.sql
 ```
 
 I test SQL operano in transazione annullata, senza lasciare conferme. I test

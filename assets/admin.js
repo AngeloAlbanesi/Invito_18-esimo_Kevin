@@ -4,12 +4,15 @@ const activateForm = document.getElementById('activate-form');
 const privatePanel = document.getElementById('private-panel');
 const invitationList = document.getElementById('invitation-list');
 const moreButton = document.getElementById('more-invitations');
+const acceptedList = document.getElementById('accepted-list');
+const moreAcceptedButton = document.getElementById('more-accepted');
 const authUrl = 'https://dnpvzzrfdwbcecexuccm.supabase.co/auth/v1';
 const invitationsUrl = 'https://dnpvzzrfdwbcecexuccm.supabase.co/functions/v1/invitations';
 let accessToken;
 let refreshToken;
 let sessionExpiresAt = 0;
 let nextCursor;
+let acceptedCursor;
 let pendingCreation;
 let operationRunning = false;
 
@@ -54,6 +57,12 @@ function clearSession() {
     sessionExpiresAt = 0;
     pendingCreation = null;
     invitationList.replaceChildren();
+    acceptedList.replaceChildren();
+    document.getElementById('accepted-total').textContent = '0';
+    document.getElementById('accepted-empty').hidden = true;
+    nextCursor = null;
+    acceptedCursor = null;
+    moreAcceptedButton.hidden = true;
     document.getElementById('invitation-link').value = '';
     document.getElementById('new-link').hidden = true;
     privatePanel.hidden = true;
@@ -116,6 +125,46 @@ async function loadInvitations(append = false) {
     moreButton.hidden = !nextCursor;
 }
 
+async function loadAccepted(append = false) {
+    const result = await requestInvitations({ action: 'accepted',
+        ...(append && acceptedCursor ? { cursor: acceptedCursor } : {}) });
+    if (!append) {
+        acceptedList.replaceChildren();
+        document.getElementById('accepted-total').textContent = String(result.total);
+        document.getElementById('accepted-empty').hidden = result.total !== 0;
+    }
+    for (const person of result.accepted) {
+        const item = document.createElement('li');
+        const name = document.createElement('span');
+        const fullName = person.first_name + ' ' + person.last_name;
+        name.textContent = fullName;
+        const confirmedDate = document.createElement('span');
+        confirmedDate.className = 'confirmed-date';
+        confirmedDate.textContent = 'Confermato il ' + new Date(person.created_at).toLocaleString('it-IT', {
+            dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Rome',
+        });
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Elimina persona';
+        deleteButton.setAttribute('aria-label', 'Elimina persona: ' + fullName);
+        deleteButton.addEventListener('click', () => {
+            if (!confirm('Eliminare ' + fullName + '? La risposta e l’invito verranno cancellati definitivamente. Il vecchio link non funzionerà più.')) return;
+            runOperation(async () => {
+                await requestInvitations({ action: 'delete', invitationId: person.invitation_id });
+                document.getElementById('invitation-link').value = '';
+                document.getElementById('new-link').hidden = true;
+                await loadInvitations();
+                await loadAccepted();
+                adminMessage.textContent = 'Persona eliminata. Risposta e invito cancellati.';
+            });
+        });
+        item.append(name, confirmedDate, deleteButton);
+        acceptedList.append(item);
+    }
+    acceptedCursor = result.nextCursor;
+    moreAcceptedButton.hidden = !acceptedCursor;
+}
+
 loginForm.addEventListener('submit', (event) => {
     event.preventDefault();
     runOperation(async () => {
@@ -125,6 +174,7 @@ loginForm.addEventListener('submit', (event) => {
         setSession(session);
         loginForm.elements.password.value = '';
         await loadInvitations();
+        await loadAccepted();
         loginForm.hidden = true;
         privatePanel.hidden = false;
         adminMessage.textContent = 'Accesso confermato.';
@@ -137,6 +187,7 @@ activateForm.addEventListener('submit', (event) => {
         await requestAuth('/user', { password: activateForm.elements.password.value }, 'PUT');
         activateForm.elements.password.value = '';
         await loadInvitations();
+        await loadAccepted();
         activateForm.hidden = true;
         privatePanel.hidden = false;
         adminMessage.textContent = 'Accesso attivato. Puoi creare gli inviti.';
@@ -171,6 +222,14 @@ document.getElementById('refresh-invitations').addEventListener('click', () => r
     adminMessage.textContent = 'Elenco aggiornato. Se manca un link, usa Sostituisci link.';
 }));
 moreButton.addEventListener('click', () => runOperation(async () => { await loadInvitations(true); adminMessage.textContent = 'Elenco aggiornato.'; }));
+document.getElementById('refresh-accepted').addEventListener('click', () => runOperation(async () => {
+    await loadAccepted();
+    adminMessage.textContent = 'Presenze aggiornate.';
+}));
+moreAcceptedButton.addEventListener('click', () => runOperation(async () => {
+    await loadAccepted(true);
+    adminMessage.textContent = 'Presenze aggiornate.';
+}));
 document.getElementById('logout').addEventListener('click', () => runOperation(async () => {
     try { await requestAuth('/logout', {}); } finally { clearSession(); }
     adminMessage.textContent = 'Sessione chiusa.';

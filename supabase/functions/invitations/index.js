@@ -75,6 +75,29 @@ export async function handleInvitationRequest(request) {
         ...options, headers: databaseHeaders, signal: AbortSignal.timeout(10000),
     });
     try {
+        if (payload.action === 'accepted') {
+            if (payload.cursor !== undefined && !isUuid(payload.cursor)) return respond(400, { error: 'Pagina non valida.' });
+            const cursorFilter = payload.cursor ? `&invitation_id=gt.${payload.cursor}` : '';
+            const result = await fetch(`${supabaseUrl}/rest/v1/rsvp_responses`
+                + '?select=invitation_id,first_name,last_name,created_at&attending=eq.true'
+                + `&invitation_id=not.is.null&order=invitation_id.asc&limit=100${cursorFilter}`, {
+                headers: { ...databaseHeaders, Prefer: 'count=exact' }, signal: AbortSignal.timeout(10000),
+            });
+            if (!result.ok) throw new Error('Database unavailable');
+            const accepted = await result.json();
+            const total = Number(result.headers.get('content-range')?.split('/')[1]);
+            if (!Number.isSafeInteger(total) || total < 0) throw new Error('Invalid count');
+            return respond(200, { accepted, total, nextCursor: accepted.length === 100
+                ? accepted[accepted.length - 1].invitation_id : null });
+        }
+        if (payload.action === 'delete') {
+            if (!isUuid(payload.invitationId)) return respond(400, { error: 'Invito non valido.' });
+            const result = await queryDatabase(`${supabaseUrl}/rest/v1/rpc/delete_personal_invitation`, {
+                method: 'POST', body: JSON.stringify({ invitation_id: payload.invitationId }),
+            });
+            if (!result.ok || (await result.json()).ok !== true) throw new Error('Deletion unavailable');
+            return respond(200, { ok: true });
+        }
         if (payload.action === 'list') {
             if (payload.cursor !== undefined && !isUuid(payload.cursor)) return respond(400, { error: 'Pagina non valida.' });
             const cursorFilter = payload.cursor ? `&id=gt.${payload.cursor}` : '';

@@ -27,6 +27,10 @@ globalThis.fetch = async (url, options) => {
     if (url.includes(unavailableService || 'never-match')) throw new Error('Offline');
     if (url.includes('siteverify')) return Response.json(challenge);
     if (url.endsWith('/auth/v1/user')) return Response.json({ id: verifiedUser });
+    if (url.includes('/rsvp_responses')) return Response.json([
+        { invitation_id: '11111111-1111-4111-8111-111111111111', first_name: 'Mario', last_name: 'Rossi', created_at: '2026-10-03T16:00:00Z' },
+    ], { headers: { 'Content-Range': '0-0/1' } });
+    if (url.endsWith('/rpc/delete_personal_invitation')) return Response.json({ ok: true });
     if (url.includes('/rsvp_invitations')) {
         if (url.includes('select=first_name,last_name')) return Response.json(identifiedInvitations);
         if (options.method === 'POST') createdInvitation = JSON.parse(options.body);
@@ -132,11 +136,32 @@ try {
     const adminRequest = (body, authorization = 'Bearer test-session') => handleInvitationRequest(
         request(body, { Authorization: authorization }));
     assert.equal((await adminRequest({ action: 'list' }, '')).status, 401);
+    assert.equal((await adminRequest({ action: 'accepted' }, '')).status, 401);
+    assert.equal((await adminRequest({ action: 'delete', invitationId: randomUUID() }, '')).status, 401);
     assert.equal(databaseCalls().length, 0);
     verifiedUser = randomUUID();
     assert.equal((await adminRequest({ action: 'list' })).status, 403);
+    assert.equal((await adminRequest({ action: 'accepted' })).status, 403);
+    assert.equal((await adminRequest({ action: 'delete', invitationId: randomUUID() })).status, 403);
     assert.equal(databaseCalls().length, 0);
     verifiedUser = adminUserId;
+    const acceptedResponse = await adminRequest({ action: 'accepted' });
+    assert.equal(acceptedResponse.status, 200);
+    assert.equal(acceptedResponse.headers.get('Cache-Control'), 'no-store');
+    const acceptedBody = await acceptedResponse.json();
+    assert.equal(acceptedBody.total, 1);
+    assert.equal(acceptedBody.accepted[0].first_name, 'Mario');
+    const acceptedQuery = calls.find(call => call.url.includes('/rsvp_responses'));
+    assert.ok(acceptedQuery.url.includes('attending=eq.true'));
+    assert.equal(acceptedQuery.url.includes('allerg'), false);
+    assert.equal((await adminRequest({ action: 'accepted', cursor: 'invalid' })).status, 400);
+    const deletedId = randomUUID();
+    assert.equal((await adminRequest({ action: 'delete', invitationId: deletedId })).status, 200);
+    assert.deepEqual(JSON.parse(calls.find(call => call.url.endsWith('/rpc/delete_personal_invitation')).options.body), { invitation_id: deletedId });
+    assert.equal((await adminRequest({ action: 'delete', invitationId: 'invalid' })).status, 400);
+    unavailableService = 'delete_personal_invitation';
+    assert.equal((await adminRequest({ action: 'delete', invitationId: deletedId })).status, 503);
+    unavailableService = undefined;
     const result = await adminRequest({ action: 'create', invitationId: randomUUID(),
         firstName: ' Kevin ', lastName: ' Test ' });
     assert.equal(result.status, 200);
